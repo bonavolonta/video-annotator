@@ -1,0 +1,1314 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>FilmAnnotator</title>
+  <style>
+:root {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #f5f7fa;
+  background: #090b10;
+  font-synthesis: none;
+}
+
+* { box-sizing: border-box; }
+
+html, body { margin: 0; min-height: 100%; background: #090b10; }
+body { min-height: 100vh; overflow-x: hidden; }
+button, input, textarea { font: inherit; }
+button { cursor: pointer; }
+button:disabled { cursor: not-allowed; opacity: .45; }
+
+.app-shell {
+  min-height: 100vh;
+  background: radial-gradient(circle at 50% 0%, #171b24 0, #0b0e14 38%, #090b10 100%);
+}
+
+.topbar {
+  min-height: 68px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 12px 20px;
+  border-bottom: 1px solid #272c36;
+  background: rgba(11, 14, 20, .94);
+  position: relative;
+  z-index: 30;
+}
+
+.brand { display: flex; align-items: baseline; gap: 12px; min-width: 0; }
+.brand strong { font-size: 1.05rem; letter-spacing: .01em; }
+.brand span { color: #9ea7b5; font-size: .88rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.top-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+
+.button, .action-button, .mini-button, .icon-button, .tab-button, .text-button {
+  border: 0;
+  border-radius: 10px;
+}
+
+.button {
+  min-height: 40px;
+  padding: 0 14px;
+  font-weight: 650;
+}
+.button.large { min-height: 48px; padding: 0 20px; font-size: 1rem; }
+.button.primary { background: #f0f2f5; color: #11151b; }
+.button.primary:hover:not(:disabled) { background: #fff; }
+.button.secondary { background: #202530; color: #edf0f4; }
+.button.secondary:hover:not(:disabled) { background: #2b323f; }
+
+.count-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  margin-left: 5px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #353d4a;
+  font-size: .78rem;
+}
+
+.empty-state {
+  min-height: calc(100vh - 68px);
+  display: grid;
+  place-items: center;
+  padding: 28px;
+  outline: none;
+}
+.empty-state.is-dragging { background: rgba(255,255,255,.04); }
+.empty-card { max-width: 620px; text-align: center; }
+.empty-icon {
+  width: 74px;
+  height: 74px;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 20px;
+  border-radius: 20px;
+  background: #1b2029;
+  border: 1px solid #303744;
+  font-size: 1.7rem;
+}
+.empty-card h1 { margin: 0 0 12px; font-size: clamp(1.8rem, 4vw, 3.1rem); font-weight: 740; }
+.empty-card p { color: #aab2bf; line-height: 1.6; }
+.empty-card .format-note { margin-top: 18px; font-size: .84rem; color: #7f8998; }
+
+.resume-card {
+  margin: 22px auto 0;
+  padding: 14px 16px;
+  max-width: 520px;
+  border: 1px solid #303744;
+  border-radius: 12px;
+  background: #141922;
+  text-align: left;
+}
+.resume-card strong { display: block; margin-bottom: 5px; font-size: .92rem; }
+.resume-card p { margin: 0 0 10px; color: #9ea7b5; font-size: .84rem; line-height: 1.45; }
+.resume-card .resume-meta { color: #c8ced7; font-variant-numeric: tabular-nums; }
+.resume-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.save-indicator { color: #8994a3; font-size: .78rem; white-space: nowrap; }
+
+.workspace { padding: 14px 16px 18px; }
+.is-hidden { display: none !important; }
+
+.video-stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: calc(100vh - 238px);
+  background: #000;
+  border: 1px solid #272c36;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 22px 70px rgba(0, 0, 0, .36);
+}
+
+.video-stage video {
+  width: 100%;
+  height: 100%;
+  max-height: calc(100vh - 238px);
+  object-fit: contain;
+  background: #000;
+}
+
+.drop-overlay {
+  position: absolute;
+  inset: 0;
+  display: none;
+  place-items: center;
+  z-index: 25;
+  background: rgba(8, 11, 16, .86);
+  border: 3px dashed #c8cfd8;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+.video-stage.is-dragging .drop-overlay { display: grid; }
+
+.drawer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(430px, 94vw);
+  z-index: 20;
+  background: rgba(16, 19, 25, .98);
+  border-left: 1px solid #333a47;
+  box-shadow: -18px 0 60px rgba(0,0,0,.5);
+  transform: translateX(105%);
+  transition: transform .18s ease;
+  display: flex;
+  flex-direction: column;
+}
+.drawer.is-open { transform: translateX(0); }
+.drawer-header {
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #2a303a;
+}
+.drawer-tabs { display: flex; gap: 6px; }
+.tab-button {
+  min-height: 38px;
+  padding: 0 12px;
+  background: transparent;
+  color: #aab3bf;
+  font-weight: 650;
+}
+.tab-button.is-active { background: #2a303b; color: #fff; }
+.icon-button {
+  width: 38px;
+  height: 38px;
+  background: transparent;
+  color: #d9dee6;
+  font-size: 1.7rem;
+  line-height: 1;
+}
+.icon-button:hover { background: #282e38; }
+
+.drawer-panel { flex: 1; min-height: 0; overflow-y: auto; }
+.annotation-form { padding: 18px; }
+.annotation-form fieldset { border: 0; margin: 0; padding: 0; }
+.type-switch legend { margin-bottom: 9px; color: #c3cad4; font-size: .82rem; font-weight: 650; }
+.type-switch { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.type-switch label { position: relative; }
+.type-switch input { position: absolute; opacity: 0; pointer-events: none; }
+.type-switch span {
+  display: grid;
+  place-items: center;
+  min-height: 44px;
+  padding: 8px;
+  border-radius: 10px;
+  border: 1px solid #343b47;
+  background: #20252e;
+  color: #c5ccd5;
+  font-size: .9rem;
+  font-weight: 650;
+}
+.type-switch input:checked + span { background: #eceff3; color: #11151b; border-color: #eceff3; }
+
+.time-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; }
+.time-grid label > span, .comment-field > span { display: block; margin-bottom: 7px; color: #c6ccd5; font-size: .82rem; font-weight: 650; }
+.time-input-row { display: flex; gap: 6px; }
+.time-input-row input,
+.comment-field textarea {
+  width: 100%;
+  border: 1px solid #39414d;
+  border-radius: 9px;
+  background: #0f1217;
+  color: #f4f6f8;
+  outline: none;
+}
+.time-input-row input { min-width: 0; height: 40px; padding: 0 9px; font-variant-numeric: tabular-nums; }
+.comment-field textarea { min-height: 210px; padding: 11px; resize: vertical; line-height: 1.5; }
+.time-input-row input:focus, .comment-field textarea:focus { border-color: #d5dbe3; box-shadow: 0 0 0 2px rgba(213,219,227,.14); }
+.mini-button { min-width: 50px; background: #2b323d; color: #e4e8ed; }
+.mini-button:hover { background: #39424f; }
+.field-help { margin: 6px 0 18px; color: #7f8997; font-size: .76rem; }
+.comment-field { display: block; }
+.form-error { min-height: 22px; margin-top: 8px; color: #ff9b9b; font-size: .85rem; }
+.form-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+
+.list-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  background: rgba(16, 19, 25, .98);
+  border-bottom: 1px solid #2a303a;
+  color: #aeb6c1;
+  font-size: .85rem;
+}
+.text-button { padding: 7px 8px; background: transparent; color: #b8c0ca; }
+.text-button:hover { background: #262c35; }
+.text-button.danger { color: #ff9d9d; }
+.annotation-list { padding: 8px 10px 16px; }
+.annotation-empty { padding: 38px 16px; text-align: center; color: #86909f; line-height: 1.55; }
+.annotation-card {
+  padding: 12px;
+  margin: 0 0 8px;
+  border: 1px solid #2f3641;
+  border-radius: 11px;
+  background: #171b22;
+}
+.annotation-card:hover { border-color: #495361; }
+.annotation-card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.annotation-kind { font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; color: #929dac; font-weight: 750; }
+.annotation-time { font-variant-numeric: tabular-nums; font-size: .8rem; color: #dbe0e7; text-align: right; overflow-wrap: anywhere; }
+.annotation-comment { margin: 9px 0 10px; color: #edf0f4; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
+.annotation-card-actions { display: flex; gap: 6px; }
+.annotation-card-actions button {
+  min-height: 32px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 8px;
+  background: #282e38;
+  color: #dce1e8;
+  font-size: .78rem;
+}
+.annotation-card-actions button:hover { background: #37404c; }
+.annotation-card-actions .delete:hover { background: #552b2f; }
+
+.timeline-shell { padding: 10px 8px 4px; }
+.annotation-timeline {
+  position: relative;
+  height: 16px;
+  border-radius: 999px;
+  background: #1d222b;
+  overflow: hidden;
+  cursor: pointer;
+}
+.timeline-progress { position: absolute; inset: 0 auto 0 0; width: 0; background: rgba(255,255,255,.12); pointer-events: none; }
+.timeline-marker, .timeline-segment {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  border: 0;
+  padding: 0;
+  background: #d9dee5;
+  min-width: 3px;
+  opacity: .86;
+}
+.timeline-marker { width: 3px; transform: translateX(-1px); border-radius: 3px; }
+.timeline-segment { border-radius: 999px; opacity: .58; }
+.timeline-marker:hover, .timeline-segment:hover { opacity: 1; }
+.pending-in-marker { position: absolute; top: 0; bottom: 0; width: 2px; background: #ffd36a; transform: translateX(-1px); z-index: 3; }
+
+.control-dock {
+  display: grid;
+  grid-template-columns: minmax(170px, 1fr) auto minmax(170px, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 8px 6px 0;
+}
+.video-meta { min-width: 0; }
+.video-meta strong { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: .9rem; }
+.video-meta span { display: block; margin-top: 4px; color: #8e98a7; font-size: .78rem; font-variant-numeric: tabular-nums; }
+.annotation-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; }
+.action-button {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 11px;
+  background: #202630;
+  color: #edf0f4;
+  font-weight: 650;
+}
+.action-button:hover:not(:disabled) { background: #303844; }
+.action-button.emphasized { background: #edf0f4; color: #101419; }
+.action-button.emphasized:hover:not(:disabled) { background: #fff; }
+.action-symbol { width: 18px; text-align: center; font-size: .93rem; }
+kbd {
+  min-width: 22px;
+  height: 22px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 5px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.06);
+  color: inherit;
+  font: 600 .68rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.emphasized kbd { border-color: rgba(0,0,0,.18); background: rgba(0,0,0,.06); }
+.pending-status { justify-self: end; color: #d7b95c; font-size: .82rem; text-align: right; min-height: 20px; }
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  z-index: 100;
+  max-width: min(540px, calc(100vw - 28px));
+  transform: translate(-50%, 120px);
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #f1f3f5;
+  color: #11151a;
+  box-shadow: 0 12px 44px rgba(0,0,0,.38);
+  font-size: .88rem;
+  font-weight: 650;
+  opacity: 0;
+  transition: transform .18s ease, opacity .18s ease;
+}
+.toast.is-visible { transform: translate(-50%, 0); opacity: 1; }
+
+.video-error {
+  position: absolute;
+  inset: 0;
+  z-index: 12;
+  display: grid;
+  place-items: center;
+  padding: 28px;
+  text-align: center;
+  color: #f0f2f5;
+  background: rgba(0,0,0,.82);
+}
+.video-error > div { max-width: 620px; }
+.video-error p { color: #adb5c0; line-height: 1.55; }
+
+.workspace:fullscreen {
+  width: 100vw;
+  height: 100vh;
+  padding: 8px;
+  overflow: auto;
+  background: #090b10;
+}
+.workspace:fullscreen .video-stage {
+  border-radius: 0;
+  min-height: calc(100vh - 120px);
+}
+.workspace:fullscreen .video-stage video { max-height: calc(100vh - 120px); }
+
+@media (max-width: 1100px) {
+  .control-dock { grid-template-columns: 1fr; }
+  .video-meta { text-align: center; }
+  .pending-status { justify-self: center; text-align: center; }
+  .video-stage { min-height: calc(100vh - 310px); }
+  .video-stage video { max-height: calc(100vh - 310px); }
+}
+
+@media (max-width: 720px) {
+  .topbar { align-items: flex-start; padding: 10px 12px; }
+  .brand { display: block; }
+  .brand span { display: none; }
+  .top-actions { gap: 6px; }
+  .top-actions .button { min-height: 38px; padding: 0 10px; font-size: .8rem; }
+  .workspace { padding: 8px; }
+  .video-stage { min-height: 50vh; border-radius: 10px; }
+  .video-stage video { max-height: 62vh; }
+  .annotation-actions { gap: 5px; }
+  .action-button { min-height: 42px; padding: 0 9px; }
+  .action-button kbd { display: none; }
+  .action-button span:nth-child(2) { font-size: .78rem; }
+  .time-grid { grid-template-columns: 1fr; }
+}
+
+</style>
+</head>
+<body>
+  <main id="app" class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <strong>FilmAnnotator</strong>
+        <span>Annotazioni temporali per l'analisi filmica</span>
+      </div>
+      <div class="top-actions">
+        <button id="openVideoBtn" class="button secondary" type="button">Apri film</button>
+        <button id="showListBtn" class="button secondary" type="button" disabled>
+          Annotazioni <span id="annotationCount" class="count-badge">0</span>
+        </button>
+        <button id="exportBtn" class="button primary" type="button" disabled>Esporta CSV</button>
+        <span id="saveIndicator" class="save-indicator" aria-live="polite">Salvataggio locale attivo</span>
+      </div>
+    </header>
+
+    <input id="fileInput" type="file" accept="video/*,.mp4,.m4v,.webm,.ogv,.ogg,.mov" hidden>
+
+    <section id="emptyState" class="empty-state" tabindex="0" aria-label="Carica un film">
+      <div class="empty-card">
+        <div class="empty-icon" aria-hidden="true">&#9654;</div>
+        <h1>Apri un film dal computer</h1>
+        <p>Il video resta sul dispositivo. Puoi scegliere un file oppure trascinarlo qui.</p>
+        <button id="emptyOpenBtn" class="button primary large" type="button">Seleziona film</button>
+        <div id="resumeCard" class="resume-card is-hidden">
+          <strong>Ultimo lavoro salvato</strong>
+          <p id="resumeMeta" class="resume-meta"></p>
+          <p>Le annotazioni e il punto di riproduzione sono memorizzati in questo browser. Per ragioni di sicurezza devi riselezionare il file video.</p>
+          <div class="resume-actions">
+            <button id="resumeBtn" class="button secondary" type="button">Riprendi ultimo film</button>
+            <button id="forgetResumeBtn" class="text-button danger" type="button">Dimentica</button>
+          </div>
+        </div>
+        <p class="format-note">La riproduzione dipende dai formati e codec supportati dal browser.</p>
+      </div>
+    </section>
+
+    <section id="workspace" class="workspace is-hidden" aria-label="Area di visione e annotazione">
+      <div id="videoStage" class="video-stage">
+        <video id="video" controls playsinline preload="metadata"></video>
+
+        <div id="dropOverlay" class="drop-overlay" aria-hidden="true">
+          <div>Rilascia qui il nuovo film</div>
+        </div>
+
+        <aside id="drawer" class="drawer" aria-hidden="true" aria-label="Pannello annotazioni">
+          <div class="drawer-header">
+            <div class="drawer-tabs" role="tablist" aria-label="Pannello annotazioni">
+              <button id="editorTabBtn" class="tab-button is-active" type="button" role="tab" aria-selected="true">Commento</button>
+              <button id="listTabBtn" class="tab-button" type="button" role="tab" aria-selected="false">Annotazioni</button>
+            </div>
+            <button id="closeDrawerBtn" class="icon-button" type="button" aria-label="Chiudi pannello">&times;</button>
+          </div>
+
+          <div id="editorPanel" class="drawer-panel" role="tabpanel">
+            <form id="annotationForm" class="annotation-form">
+              <input id="annotationId" type="hidden">
+
+              <fieldset class="type-switch">
+                <legend>Tipo di annotazione</legend>
+                <label>
+                  <input type="radio" name="annotationType" value="marker" checked>
+                  <span>Marker</span>
+                </label>
+                <label>
+                  <input type="radio" name="annotationType" value="segment">
+                  <span>Segmento IN-OUT</span>
+                </label>
+              </fieldset>
+
+              <div class="time-grid">
+                <label>
+                  <span>IN</span>
+                  <div class="time-input-row">
+                    <input id="inTime" type="text" inputmode="decimal" autocomplete="off" aria-describedby="timeHelp">
+                    <button id="captureInBtn" class="mini-button" type="button">Ora</button>
+                  </div>
+                </label>
+                <label id="outTimeField">
+                  <span>OUT</span>
+                  <div class="time-input-row">
+                    <input id="outTime" type="text" inputmode="decimal" autocomplete="off" aria-describedby="timeHelp">
+                    <button id="captureOutBtn" class="mini-button" type="button">Ora</button>
+                  </div>
+                </label>
+              </div>
+              <p id="timeHelp" class="field-help">Formato: HH:MM:SS.mmm</p>
+
+              <label class="comment-field">
+                <span>Commento</span>
+                <textarea id="commentText" rows="10" placeholder="Inserisci il commento sull'inquadratura, la scena o la sequenza..." required></textarea>
+              </label>
+
+              <div id="formError" class="form-error" role="alert" aria-live="polite"></div>
+
+              <div class="form-actions">
+                <button id="cancelEditBtn" class="button secondary" type="button">Annulla</button>
+                <button class="button primary" type="submit">Salva annotazione</button>
+              </div>
+            </form>
+          </div>
+
+          <div id="listPanel" class="drawer-panel is-hidden" role="tabpanel">
+            <div class="list-toolbar">
+              <span id="listSummary">0 annotazioni</span>
+              <button id="clearAllBtn" class="text-button danger" type="button">Cancella tutte</button>
+            </div>
+            <div id="annotationList" class="annotation-list"></div>
+          </div>
+        </aside>
+      </div>
+
+      <div class="timeline-shell" aria-label="Timeline delle annotazioni">
+        <div id="annotationTimeline" class="annotation-timeline">
+          <div id="timelineProgress" class="timeline-progress"></div>
+          <div id="pendingInMarker" class="pending-in-marker is-hidden" title="IN impostato"></div>
+        </div>
+      </div>
+
+      <div class="control-dock">
+        <div class="video-meta">
+          <strong id="videoName">Film</strong>
+          <span id="videoTime">00:00:00.000 / 00:00:00.000</span>
+        </div>
+
+        <div class="annotation-actions" aria-label="Comandi di annotazione">
+          <button id="markerBtn" class="action-button" type="button" disabled>
+            <span class="action-symbol">&#9679;</span>
+            <span>Marker</span>
+            <kbd>M</kbd>
+          </button>
+          <button id="inBtn" class="action-button" type="button" disabled>
+            <span class="action-symbol">|&lt;</span>
+            <span>Imposta IN</span>
+            <kbd>I</kbd>
+          </button>
+          <button id="outBtn" class="action-button" type="button" disabled>
+            <span class="action-symbol">&gt;|</span>
+            <span>Imposta OUT</span>
+            <kbd>O</kbd>
+          </button>
+          <button id="dockListBtn" class="action-button emphasized" type="button" disabled>
+            <span class="action-symbol">&#9776;</span>
+            <span>Annotazioni</span>
+            <kbd>A</kbd>
+          </button>
+          <button id="fullscreenBtn" class="action-button" type="button" disabled>
+            <span class="action-symbol">&#x26F6;</span>
+            <span>Schermo intero</span>
+            <kbd>F</kbd>
+          </button>
+        </div>
+
+        <div id="pendingStatus" class="pending-status" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  </main>
+
+  <script>
+(() => {
+  "use strict";
+
+  const els = {
+    app: document.getElementById("app"),
+    fileInput: document.getElementById("fileInput"),
+    openVideoBtn: document.getElementById("openVideoBtn"),
+    emptyOpenBtn: document.getElementById("emptyOpenBtn"),
+    emptyState: document.getElementById("emptyState"),
+    workspace: document.getElementById("workspace"),
+    videoStage: document.getElementById("videoStage"),
+    video: document.getElementById("video"),
+    drawer: document.getElementById("drawer"),
+    closeDrawerBtn: document.getElementById("closeDrawerBtn"),
+    editorTabBtn: document.getElementById("editorTabBtn"),
+    listTabBtn: document.getElementById("listTabBtn"),
+    editorPanel: document.getElementById("editorPanel"),
+    listPanel: document.getElementById("listPanel"),
+    annotationForm: document.getElementById("annotationForm"),
+    annotationId: document.getElementById("annotationId"),
+    inTime: document.getElementById("inTime"),
+    outTime: document.getElementById("outTime"),
+    outTimeField: document.getElementById("outTimeField"),
+    captureInBtn: document.getElementById("captureInBtn"),
+    captureOutBtn: document.getElementById("captureOutBtn"),
+    commentText: document.getElementById("commentText"),
+    formError: document.getElementById("formError"),
+    cancelEditBtn: document.getElementById("cancelEditBtn"),
+    showListBtn: document.getElementById("showListBtn"),
+    exportBtn: document.getElementById("exportBtn"),
+    clearAllBtn: document.getElementById("clearAllBtn"),
+    annotationList: document.getElementById("annotationList"),
+    annotationCount: document.getElementById("annotationCount"),
+    listSummary: document.getElementById("listSummary"),
+    annotationTimeline: document.getElementById("annotationTimeline"),
+    timelineProgress: document.getElementById("timelineProgress"),
+    pendingInMarker: document.getElementById("pendingInMarker"),
+    markerBtn: document.getElementById("markerBtn"),
+    inBtn: document.getElementById("inBtn"),
+    outBtn: document.getElementById("outBtn"),
+    dockListBtn: document.getElementById("dockListBtn"),
+    fullscreenBtn: document.getElementById("fullscreenBtn"),
+    videoName: document.getElementById("videoName"),
+    videoTime: document.getElementById("videoTime"),
+    pendingStatus: document.getElementById("pendingStatus"),
+    toast: document.getElementById("toast"),
+    saveIndicator: document.getElementById("saveIndicator"),
+    resumeCard: document.getElementById("resumeCard"),
+    resumeMeta: document.getElementById("resumeMeta"),
+    resumeBtn: document.getElementById("resumeBtn"),
+    forgetResumeBtn: document.getElementById("forgetResumeBtn")
+  };
+
+  const state = {
+    file: null,
+    objectUrl: null,
+    projectKey: null,
+    annotations: [],
+    pendingIn: null,
+    loaded: false,
+    toastTimer: null,
+    restoredPlayhead: 0,
+    lastPlaybackSaveAt: 0,
+    resumeRequested: false
+  };
+
+  function nowSeconds() {
+    return Number.isFinite(els.video.currentTime) ? els.video.currentTime : 0;
+  }
+
+  function clamp(value, min, max) {
+    return Math.min(Math.max(value, min), max);
+  }
+
+  function formatTime(seconds) {
+    if (!Number.isFinite(seconds) || seconds < 0) seconds = 0;
+    const msTotal = Math.round(seconds * 1000);
+    const hours = Math.floor(msTotal / 3600000);
+    const minutes = Math.floor((msTotal % 3600000) / 60000);
+    const secs = Math.floor((msTotal % 60000) / 1000);
+    const ms = msTotal % 1000;
+    return [hours, minutes, secs].map(n => String(n).padStart(2, "0")).join(":") + "." + String(ms).padStart(3, "0");
+  }
+
+  function parseTime(value) {
+    const text = String(value || "").trim().replace(",", ".");
+    if (!text) return NaN;
+    if (/^\d+(\.\d+)?$/.test(text)) return Number(text);
+    const match = text.match(/^(?:(\d+):)?(\d{1,2}):(\d{1,2})(?:\.(\d{1,3}))?$/);
+    if (!match) return NaN;
+    const hours = Number(match[1] || 0);
+    const minutes = Number(match[2]);
+    const seconds = Number(match[3]);
+    const ms = Number((match[4] || "0").padEnd(3, "0"));
+    if (minutes > 59 || seconds > 59) return NaN;
+    return hours * 3600 + minutes * 60 + seconds + ms / 1000;
+  }
+
+  function escapeHtml(value) {
+    return String(value)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+  function makeId() {
+    if (window.crypto && typeof window.crypto.randomUUID === "function") return window.crypto.randomUUID();
+    return "a-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 9);
+  }
+
+  function showToast(message) {
+    clearTimeout(state.toastTimer);
+    els.toast.textContent = message;
+    els.toast.classList.add("is-visible");
+    state.toastTimer = setTimeout(() => els.toast.classList.remove("is-visible"), 2600);
+  }
+
+  function setControlsEnabled(enabled) {
+    [els.markerBtn, els.inBtn, els.outBtn, els.dockListBtn, els.fullscreenBtn, els.showListBtn].forEach(btn => btn.disabled = !enabled);
+    els.exportBtn.disabled = !enabled || state.annotations.length === 0;
+  }
+
+  const LAST_SESSION_KEY = "film-annotator:last-session:v1";
+
+  function fileMeta(file) {
+    return { name: file.name, size: file.size, lastModified: file.lastModified };
+  }
+
+  function sameFile(meta, file) {
+    return !!meta && meta.name === file.name && meta.size === file.size && meta.lastModified === file.lastModified;
+  }
+
+  function readLastSession() {
+    try {
+      const raw = localStorage.getItem(LAST_SESSION_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function writeLastSession() {
+    if (!state.file || !state.projectKey) return;
+    try {
+      localStorage.setItem(LAST_SESSION_KEY, JSON.stringify({
+        projectKey: state.projectKey,
+        file: fileMeta(state.file),
+        annotationCount: state.annotations.length,
+        playhead: Number(nowSeconds().toFixed(3)),
+        updatedAt: new Date().toISOString()
+      }));
+      updateResumeCard();
+    } catch (error) {
+      console.warn("Memoria dell'ultima sessione non disponibile", error);
+    }
+  }
+
+  function updateResumeCard() {
+    if (!els.resumeCard) return;
+    const session = readLastSession();
+    if (!session || !session.file) {
+      els.resumeCard.classList.add("is-hidden");
+      return;
+    }
+    const count = Number(session.annotationCount || 0);
+    const position = Number(session.playhead || 0);
+    els.resumeMeta.textContent = session.file.name + " · " + count + (count === 1 ? " annotazione" : " annotazioni") + " · posizione " + formatTime(position);
+    els.resumeCard.classList.remove("is-hidden");
+  }
+
+  function setSavedIndicator(text) {
+    if (!els.saveIndicator) return;
+    els.saveIndicator.textContent = text || "Salvato localmente";
+  }
+
+  function projectStorageKey(file) {
+    return "film-annotator:v1:" + [file.name, file.size, file.lastModified].join(":");
+  }
+
+  function saveLocal() {
+    if (!state.projectKey) return;
+    try {
+      localStorage.setItem(state.projectKey, JSON.stringify({
+        annotations: state.annotations,
+        pendingIn: state.pendingIn,
+        playhead: Number(nowSeconds().toFixed(3)),
+        updatedAt: new Date().toISOString()
+      }));
+      writeLastSession();
+      setSavedIndicator("Salvato localmente");
+    } catch (error) {
+      console.warn("Salvataggio locale non disponibile", error);
+      setSavedIndicator("Salvataggio locale non disponibile");
+    }
+  }
+
+  function loadLocal() {
+    state.annotations = [];
+    state.pendingIn = null;
+    state.restoredPlayhead = 0;
+    if (!state.projectKey) return;
+    try {
+      const raw = localStorage.getItem(state.projectKey);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed.annotations)) {
+        state.annotations = parsed.annotations.filter(item =>
+          item && typeof item.id === "string" &&
+          (item.type === "marker" || item.type === "segment") &&
+          Number.isFinite(item.in) && typeof item.comment === "string"
+        );
+      }
+      if (Number.isFinite(parsed.pendingIn)) state.pendingIn = parsed.pendingIn;
+      if (Number.isFinite(parsed.playhead) && parsed.playhead >= 0) state.restoredPlayhead = parsed.playhead;
+    } catch (error) {
+      console.warn("Ripristino locale non disponibile", error);
+      state.annotations = [];
+      state.pendingIn = null;
+      state.restoredPlayhead = 0;
+    }
+  }
+
+  function savePlaybackPosition(force = false) {
+    if (!state.loaded || !state.projectKey) return;
+    const now = Date.now();
+    if (!force && now - state.lastPlaybackSaveAt < 2000) return;
+    state.lastPlaybackSaveAt = now;
+    saveLocal();
+  }
+
+  function clearVideoError() {
+    const current = els.videoStage.querySelector(".video-error");
+    if (current) current.remove();
+  }
+
+  function showVideoError() {
+    clearVideoError();
+    const panel = document.createElement("div");
+    panel.className = "video-error";
+    panel.innerHTML = '<div><h2>Il browser non riesce a riprodurre questo file</h2><p>Il contenitore o il codec del video non e supportato. Per la massima compatibilita usa MP4 con video H.264 e audio AAC, oppure WebM.</p><button class="button primary" type="button">Apri un altro film</button></div>';
+    panel.querySelector("button").addEventListener("click", () => els.fileInput.click());
+    els.videoStage.appendChild(panel);
+  }
+
+  function loadVideo(file) {
+    if (!file) return;
+    const previousSession = readLastSession();
+    if (state.resumeRequested && previousSession && previousSession.file && !sameFile(previousSession.file, file)) {
+      state.resumeRequested = false;
+      showToast("Questo non è il film dell'ultima sessione. Seleziona " + previousSession.file.name + ".");
+      return;
+    }
+    state.resumeRequested = false;
+    if (!file.type.startsWith("video/") && !/\.(mp4|m4v|webm|ogv|ogg|mov)$/i.test(file.name)) {
+      showToast("Seleziona un file video.");
+      return;
+    }
+
+    if (state.objectUrl) URL.revokeObjectURL(state.objectUrl);
+    clearVideoError();
+    closeDrawer();
+    state.file = file;
+    state.projectKey = projectStorageKey(file);
+    state.objectUrl = URL.createObjectURL(file);
+    state.loaded = false;
+    state.pendingIn = null;
+    loadLocal();
+
+    els.video.src = state.objectUrl;
+    els.video.load();
+    els.videoName.textContent = file.name;
+    els.emptyState.classList.add("is-hidden");
+    els.workspace.classList.remove("is-hidden");
+    renderAll();
+  }
+
+  function annotationSort(a, b) {
+    return a.in - b.in || (a.out || a.in) - (b.out || b.in);
+  }
+
+  function openDrawer(tab = "editor") {
+    els.drawer.classList.add("is-open");
+    els.drawer.setAttribute("aria-hidden", "false");
+    setDrawerTab(tab);
+  }
+
+  function closeDrawer() {
+    els.drawer.classList.remove("is-open");
+    els.drawer.setAttribute("aria-hidden", "true");
+    els.formError.textContent = "";
+  }
+
+  function setDrawerTab(tab) {
+    const editor = tab === "editor";
+    els.editorTabBtn.classList.toggle("is-active", editor);
+    els.listTabBtn.classList.toggle("is-active", !editor);
+    els.editorTabBtn.setAttribute("aria-selected", String(editor));
+    els.listTabBtn.setAttribute("aria-selected", String(!editor));
+    els.editorPanel.classList.toggle("is-hidden", !editor);
+    els.listPanel.classList.toggle("is-hidden", editor);
+  }
+
+  function setAnnotationType(type) {
+    const input = els.annotationForm.querySelector('input[name="annotationType"][value="' + type + '"]');
+    if (input) input.checked = true;
+    updateTypeUI();
+  }
+
+  function currentAnnotationType() {
+    return els.annotationForm.querySelector('input[name="annotationType"]:checked').value;
+  }
+
+  function updateTypeUI() {
+    const isSegment = currentAnnotationType() === "segment";
+    els.outTimeField.classList.toggle("is-hidden", !isSegment);
+  }
+
+  function resetEditor() {
+    els.annotationId.value = "";
+    setAnnotationType("marker");
+    els.inTime.value = formatTime(nowSeconds());
+    els.outTime.value = "";
+    els.commentText.value = "";
+    els.formError.textContent = "";
+  }
+
+  function beginMarker() {
+    if (!state.loaded) return;
+    els.video.pause();
+    state.pendingIn = null;
+    updatePendingUI();
+    els.annotationId.value = "";
+    setAnnotationType("marker");
+    els.inTime.value = formatTime(nowSeconds());
+    els.outTime.value = "";
+    els.commentText.value = "";
+    els.formError.textContent = "";
+    openDrawer("editor");
+    setTimeout(() => els.commentText.focus(), 0);
+  }
+
+  function setInPoint() {
+    if (!state.loaded) return;
+    state.pendingIn = nowSeconds();
+    updatePendingUI();
+    showToast("IN impostato a " + formatTime(state.pendingIn));
+  }
+
+  function setOutPoint() {
+    if (!state.loaded) return;
+    if (state.pendingIn === null) {
+      showToast("Imposta prima il punto IN.");
+      return;
+    }
+    const out = nowSeconds();
+    if (out <= state.pendingIn) {
+      showToast("Il punto OUT deve essere successivo al punto IN.");
+      return;
+    }
+    els.video.pause();
+    els.annotationId.value = "";
+    setAnnotationType("segment");
+    els.inTime.value = formatTime(state.pendingIn);
+    els.outTime.value = formatTime(out);
+    els.commentText.value = "";
+    els.formError.textContent = "";
+    state.pendingIn = null;
+    updatePendingUI();
+    openDrawer("editor");
+    setTimeout(() => els.commentText.focus(), 0);
+  }
+
+  function editAnnotation(id) {
+    const item = state.annotations.find(a => a.id === id);
+    if (!item) return;
+    els.video.pause();
+    els.annotationId.value = item.id;
+    setAnnotationType(item.type);
+    els.inTime.value = formatTime(item.in);
+    els.outTime.value = item.type === "segment" && Number.isFinite(item.out) ? formatTime(item.out) : "";
+    els.commentText.value = item.comment;
+    els.formError.textContent = "";
+    openDrawer("editor");
+    setTimeout(() => els.commentText.focus(), 0);
+  }
+
+  function deleteAnnotation(id) {
+    const item = state.annotations.find(a => a.id === id);
+    if (!item) return;
+    if (!window.confirm("Eliminare questa annotazione?")) return;
+    state.annotations = state.annotations.filter(a => a.id !== id);
+    saveLocal();
+    renderAll();
+    showToast("Annotazione eliminata.");
+  }
+
+  function seekTo(seconds) {
+    if (!state.loaded) return;
+    els.video.currentTime = clamp(seconds, 0, Number.isFinite(els.video.duration) ? els.video.duration : seconds);
+    els.video.pause();
+  }
+
+  function validateAndSave(event) {
+    event.preventDefault();
+    const type = currentAnnotationType();
+    const inSeconds = parseTime(els.inTime.value);
+    const outSeconds = type === "segment" ? parseTime(els.outTime.value) : null;
+    const comment = els.commentText.value.trim();
+    const duration = els.video.duration;
+
+    els.formError.textContent = "";
+
+    if (!Number.isFinite(inSeconds) || inSeconds < 0) {
+      els.formError.textContent = "Inserisci un tempo IN valido.";
+      return;
+    }
+    if (Number.isFinite(duration) && inSeconds > duration) {
+      els.formError.textContent = "Il tempo IN supera la durata del film.";
+      return;
+    }
+    if (type === "segment") {
+      if (!Number.isFinite(outSeconds)) {
+        els.formError.textContent = "Inserisci un tempo OUT valido.";
+        return;
+      }
+      if (outSeconds <= inSeconds) {
+        els.formError.textContent = "Il tempo OUT deve essere successivo al tempo IN.";
+        return;
+      }
+      if (Number.isFinite(duration) && outSeconds > duration) {
+        els.formError.textContent = "Il tempo OUT supera la durata del film.";
+        return;
+      }
+    }
+    if (!comment) {
+      els.formError.textContent = "Inserisci un commento.";
+      return;
+    }
+
+    const existingId = els.annotationId.value;
+    const item = {
+      id: existingId || makeId(),
+      type,
+      in: Number(inSeconds.toFixed(3)),
+      out: type === "segment" ? Number(outSeconds.toFixed(3)) : null,
+      comment,
+      updatedAt: new Date().toISOString()
+    };
+
+    if (existingId) {
+      const index = state.annotations.findIndex(a => a.id === existingId);
+      if (index >= 0) state.annotations[index] = item;
+    } else {
+      state.annotations.push(item);
+    }
+
+    state.annotations.sort(annotationSort);
+    saveLocal();
+    renderAll();
+    closeDrawer();
+    showToast(existingId ? "Annotazione aggiornata." : "Annotazione salvata.");
+  }
+
+  function renderList() {
+    const count = state.annotations.length;
+    els.annotationCount.textContent = String(count);
+    els.listSummary.textContent = count === 1 ? "1 annotazione" : count + " annotazioni";
+    els.exportBtn.disabled = !state.loaded || count === 0;
+    els.clearAllBtn.disabled = count === 0;
+
+    if (count === 0) {
+      els.annotationList.innerHTML = '<div class="annotation-empty">Nessuna annotazione salvata.<br>Usa Marker oppure IN-OUT durante la visione.</div>';
+      return;
+    }
+
+    els.annotationList.innerHTML = state.annotations.map(item => {
+      const time = item.type === "segment"
+        ? formatTime(item.in) + " - " + formatTime(item.out)
+        : formatTime(item.in);
+      return '<article class="annotation-card" data-id="' + escapeHtml(item.id) + '">' +
+        '<div class="annotation-card-head"><span class="annotation-kind">' + (item.type === "segment" ? "Segmento" : "Marker") + '</span><span class="annotation-time">' + escapeHtml(time) + '</span></div>' +
+        '<div class="annotation-comment">' + escapeHtml(item.comment) + '</div>' +
+        '<div class="annotation-card-actions">' +
+          '<button type="button" data-action="seek">Vai al punto</button>' +
+          '<button type="button" data-action="edit">Modifica</button>' +
+          '<button type="button" data-action="delete" class="delete">Elimina</button>' +
+        '</div>' +
+      '</article>';
+    }).join("");
+  }
+
+  function renderTimeline() {
+    els.annotationTimeline.querySelectorAll(".timeline-marker, .timeline-segment").forEach(node => node.remove());
+    const duration = els.video.duration;
+    if (!Number.isFinite(duration) || duration <= 0) return;
+
+    state.annotations.forEach(item => {
+      const node = document.createElement("button");
+      node.type = "button";
+      node.className = item.type === "segment" ? "timeline-segment" : "timeline-marker";
+      const left = clamp(item.in / duration * 100, 0, 100);
+      node.style.left = left + "%";
+      if (item.type === "segment" && Number.isFinite(item.out)) {
+        const width = clamp((item.out - item.in) / duration * 100, .2, 100 - left);
+        node.style.width = width + "%";
+      }
+      node.title = (item.type === "segment" ? formatTime(item.in) + " - " + formatTime(item.out) : formatTime(item.in)) + "\n" + item.comment;
+      node.setAttribute("aria-label", "Vai all'annotazione a " + formatTime(item.in));
+      node.addEventListener("click", event => {
+        event.stopPropagation();
+        seekTo(item.in);
+      });
+      els.annotationTimeline.appendChild(node);
+    });
+  }
+
+  function updateTimeUI() {
+    const duration = Number.isFinite(els.video.duration) ? els.video.duration : 0;
+    const current = nowSeconds();
+    els.videoTime.textContent = formatTime(current) + " / " + formatTime(duration);
+    els.timelineProgress.style.width = duration > 0 ? clamp(current / duration * 100, 0, 100) + "%" : "0%";
+  }
+
+  function updatePendingUI() {
+    const duration = els.video.duration;
+    if (state.pendingIn === null) {
+      els.pendingStatus.textContent = "";
+      els.pendingInMarker.classList.add("is-hidden");
+      return;
+    }
+    els.pendingStatus.textContent = "IN: " + formatTime(state.pendingIn) + " - premi OUT quando termina la sequenza";
+    if (Number.isFinite(duration) && duration > 0) {
+      els.pendingInMarker.style.left = clamp(state.pendingIn / duration * 100, 0, 100) + "%";
+      els.pendingInMarker.classList.remove("is-hidden");
+    }
+  }
+
+  function renderAll() {
+    renderList();
+    renderTimeline();
+    updateTimeUI();
+    updatePendingUI();
+    setControlsEnabled(state.loaded);
+  }
+
+  function csvCell(value) {
+    const text = value === null || value === undefined ? "" : String(value);
+    return '"' + text.replaceAll('"', '""') + '"';
+  }
+
+  function exportCsv() {
+    if (state.annotations.length === 0) {
+      showToast("Non ci sono annotazioni da esportare.");
+      return;
+    }
+    const rows = [
+      ["ID", "Tipo", "IN", "OUT", "IN_secondi", "OUT_secondi", "Commento", "Video"]
+    ];
+    state.annotations.slice().sort(annotationSort).forEach((item, index) => {
+      rows.push([
+        index + 1,
+        item.type === "segment" ? "segmento" : "marker",
+        formatTime(item.in),
+        item.type === "segment" ? formatTime(item.out) : "",
+        item.in.toFixed(3),
+        item.type === "segment" && Number.isFinite(item.out) ? item.out.toFixed(3) : "",
+        item.comment,
+        state.file ? state.file.name : ""
+      ]);
+    });
+    const csv = "\uFEFF" + rows.map(row => row.map(csvCell).join(",")).join("\r\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    const base = state.file ? state.file.name.replace(/\.[^.]+$/, "") : "film";
+    link.href = url;
+    link.download = base + "_annotazioni.csv";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    showToast("CSV esportato.");
+  }
+
+  function toggleFullscreen() {
+    if (!state.loaded) return;
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+    } else if (els.workspace.requestFullscreen) {
+      els.workspace.requestFullscreen().catch(() => showToast("Schermo intero non disponibile in questo browser."));
+    }
+  }
+
+  function clearAllAnnotations() {
+    if (state.annotations.length === 0) return;
+    if (!window.confirm("Cancellare tutte le annotazioni di questo film?")) return;
+    state.annotations = [];
+    state.pendingIn = null;
+    saveLocal();
+    renderAll();
+    showToast("Annotazioni cancellate.");
+  }
+
+  function handleDroppedFiles(files) {
+    const file = Array.from(files || []).find(f => f.type.startsWith("video/") || /\.(mp4|m4v|webm|ogv|ogg|mov)$/i.test(f.name));
+    if (file) loadVideo(file);
+    else showToast("Nel trascinamento non e stato trovato un file video compatibile.");
+  }
+
+  function isTypingTarget(target) {
+    return target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable);
+  }
+
+  els.openVideoBtn.addEventListener("click", () => els.fileInput.click());
+  els.emptyOpenBtn.addEventListener("click", () => els.fileInput.click());
+  els.resumeBtn.addEventListener("click", () => {
+    state.resumeRequested = true;
+    els.fileInput.click();
+  });
+  els.forgetResumeBtn.addEventListener("click", () => {
+    try { localStorage.removeItem(LAST_SESSION_KEY); } catch (error) {}
+    updateResumeCard();
+    showToast("Riferimento all'ultima sessione rimosso. Le annotazioni dei singoli film restano salvate.");
+  });
+  els.fileInput.addEventListener("change", () => {
+    if (els.fileInput.files && els.fileInput.files[0]) loadVideo(els.fileInput.files[0]);
+    els.fileInput.value = "";
+  });
+
+  els.video.addEventListener("loadedmetadata", () => {
+    state.loaded = true;
+    clearVideoError();
+    if (state.restoredPlayhead > 0 && Number.isFinite(els.video.duration)) {
+      els.video.currentTime = clamp(state.restoredPlayhead, 0, els.video.duration);
+    }
+    renderAll();
+    writeLastSession();
+    if (state.annotations.length > 0 || state.restoredPlayhead > 0) {
+      const parts = [];
+      if (state.annotations.length > 0) parts.push(state.annotations.length + " annotazioni");
+      if (state.restoredPlayhead > 0) parts.push("posizione " + formatTime(state.restoredPlayhead));
+      showToast("Ripristinati: " + parts.join(" · ") + ".");
+    }
+  });
+  els.video.addEventListener("timeupdate", () => {
+    updateTimeUI();
+    savePlaybackPosition(false);
+  });
+  els.video.addEventListener("pause", () => savePlaybackPosition(true));
+  els.video.addEventListener("seeked", () => savePlaybackPosition(true));
+  els.video.addEventListener("durationchange", renderTimeline);
+  els.video.addEventListener("error", showVideoError);
+
+  els.markerBtn.addEventListener("click", beginMarker);
+  els.dockListBtn.addEventListener("click", () => openDrawer("list"));
+  els.inBtn.addEventListener("click", setInPoint);
+  els.outBtn.addEventListener("click", setOutPoint);
+  els.fullscreenBtn.addEventListener("click", toggleFullscreen);
+  els.exportBtn.addEventListener("click", exportCsv);
+  els.showListBtn.addEventListener("click", () => openDrawer("list"));
+  els.closeDrawerBtn.addEventListener("click", closeDrawer);
+  els.editorTabBtn.addEventListener("click", () => setDrawerTab("editor"));
+  els.listTabBtn.addEventListener("click", () => setDrawerTab("list"));
+  els.clearAllBtn.addEventListener("click", clearAllAnnotations);
+  els.annotationForm.addEventListener("submit", validateAndSave);
+  els.cancelEditBtn.addEventListener("click", closeDrawer);
+  els.captureInBtn.addEventListener("click", () => els.inTime.value = formatTime(nowSeconds()));
+  els.captureOutBtn.addEventListener("click", () => els.outTime.value = formatTime(nowSeconds()));
+  els.annotationForm.querySelectorAll('input[name="annotationType"]').forEach(input => input.addEventListener("change", updateTypeUI));
+
+  els.annotationList.addEventListener("click", event => {
+    const card = event.target.closest(".annotation-card");
+    const button = event.target.closest("button[data-action]");
+    if (!card || !button) return;
+    const id = card.dataset.id;
+    const action = button.dataset.action;
+    const item = state.annotations.find(a => a.id === id);
+    if (!item) return;
+    if (action === "seek") seekTo(item.in);
+    if (action === "edit") editAnnotation(id);
+    if (action === "delete") deleteAnnotation(id);
+  });
+
+  els.annotationTimeline.addEventListener("click", event => {
+    if (!state.loaded || !Number.isFinite(els.video.duration)) return;
+    if (event.target !== els.annotationTimeline && event.target !== els.timelineProgress) return;
+    const rect = els.annotationTimeline.getBoundingClientRect();
+    const ratio = clamp((event.clientX - rect.left) / rect.width, 0, 1);
+    seekTo(ratio * els.video.duration);
+  });
+
+  [els.emptyState, els.videoStage].forEach(zone => {
+    zone.addEventListener("dragover", event => {
+      event.preventDefault();
+      zone.classList.add("is-dragging");
+    });
+    zone.addEventListener("dragleave", () => zone.classList.remove("is-dragging"));
+    zone.addEventListener("drop", event => {
+      event.preventDefault();
+      zone.classList.remove("is-dragging");
+      handleDroppedFiles(event.dataTransfer.files);
+    });
+  });
+
+  document.addEventListener("keydown", event => {
+    if (isTypingTarget(event.target)) return;
+    if (event.key === "Escape" && els.drawer.classList.contains("is-open") && !document.fullscreenElement) {
+      closeDrawer();
+      return;
+    }
+    if (!state.loaded || event.ctrlKey || event.metaKey || event.altKey) return;
+    const key = event.key.toLowerCase();
+    if (key === "m") { event.preventDefault(); beginMarker(); }
+    else if (key === "i") { event.preventDefault(); setInPoint(); }
+    else if (key === "o") { event.preventDefault(); setOutPoint(); }
+    else if (key === "a") { event.preventDefault(); openDrawer("list"); }
+    else if (key === "f") { event.preventDefault(); toggleFullscreen(); }
+  });
+
+  window.addEventListener("beforeunload", () => {
+    savePlaybackPosition(true);
+    if (state.objectUrl) URL.revokeObjectURL(state.objectUrl);
+  });
+
+  updateTypeUI();
+  updateResumeCard();
+  renderAll();
+})();
+
+</script>
+</body>
+</html>

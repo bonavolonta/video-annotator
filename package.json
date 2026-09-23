@@ -1,0 +1,19 @@
+{
+  "name": "film-annotator",
+  "version": "1.1.0",
+  "private": true,
+  "description": "FilmAnnotator v1.1 - Applicazione web locale per annotazione temporale di video",
+  "scripts": {
+    "review": "ocr review --audience agent",
+    "review:preview": "ocr review --preview",
+    "review:scan": "ocr scan",
+    "ocr": "ocr",
+    "ocr:review": "ocr review",
+    "ocr:scan": "ocr scan",
+    "ocr:preview": "ocr scan --preview",
+    "ocr:config": "ocr config"
+  },
+  "devDependencies": {
+    "@alibaba-group/open-code-review": "^1.12.9"
+  }
+}
