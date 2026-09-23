@@ -81,6 +81,54 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 }
 .empty-state.is-dragging { background: rgba(255,255,255,.04); }
 .empty-card { max-width: 620px; text-align: center; }
+.source-switch {
+  display: inline-flex;
+  padding: 4px;
+  margin-bottom: 24px;
+  background: #141922;
+  border: 1px solid #2a313d;
+  border-radius: 12px;
+  gap: 4px;
+}
+.source-tab {
+  min-height: 38px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #9ea7b5;
+  font-weight: 650;
+  font-size: .92rem;
+  transition: all .15s ease;
+}
+.source-tab:hover { color: #f5f7fa; }
+.source-tab.is-active {
+  background: #252b36;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,.25);
+}
+.youtube-input-group {
+  display: flex;
+  gap: 10px;
+  margin: 20px auto 10px;
+  max-width: 520px;
+}
+.youtube-input-group input {
+  flex: 1;
+  min-width: 0;
+  height: 48px;
+  padding: 0 14px;
+  border: 1px solid #39414d;
+  border-radius: 10px;
+  background: #0f1217;
+  color: #f4f6f8;
+  font-size: .95rem;
+  outline: none;
+}
+.youtube-input-group input:focus {
+  border-color: #d5dbe3;
+  box-shadow: 0 0 0 2px rgba(213,219,227,.14);
+}
 .empty-icon {
   width: 74px;
   height: 74px;
@@ -92,9 +140,25 @@ button:disabled { cursor: not-allowed; opacity: .45; }
   border: 1px solid #303744;
   font-size: 1.7rem;
 }
+.empty-icon.youtube-icon { color: #ff5555; }
 .empty-card h1 { margin: 0 0 12px; font-size: clamp(1.8rem, 4vw, 3.1rem); font-weight: 740; }
 .empty-card p { color: #aab2bf; line-height: 1.6; }
 .empty-card .format-note { margin-top: 18px; font-size: .84rem; color: #7f8998; }
+.youtube-container {
+  width: 100%;
+  height: 100%;
+  min-height: calc(100vh - 238px);
+  display: grid;
+  place-items: center;
+  background: #000;
+}
+.youtube-container iframe,
+.youtube-container #youtubePlayer {
+  width: 100%;
+  height: 100%;
+  min-height: calc(100vh - 238px);
+  border: 0;
+}
 
 .resume-card {
   margin: 22px auto 0;
@@ -388,14 +452,25 @@ kbd {
   border-radius: 0;
   min-height: calc(100vh - 120px);
 }
-.workspace:fullscreen .video-stage video { max-height: calc(100vh - 120px); }
+.workspace:fullscreen .video-stage video,
+.workspace:fullscreen .youtube-container,
+.workspace:fullscreen .youtube-container iframe,
+.workspace:fullscreen .youtube-container #youtubePlayer {
+  max-height: calc(100vh - 120px);
+}
 
 @media (max-width: 1100px) {
   .control-dock { grid-template-columns: 1fr; }
   .video-meta { text-align: center; }
   .pending-status { justify-self: center; text-align: center; }
   .video-stage { min-height: calc(100vh - 310px); }
-  .video-stage video { max-height: calc(100vh - 310px); }
+  .video-stage video,
+  .youtube-container,
+  .youtube-container iframe,
+  .youtube-container #youtubePlayer {
+    min-height: calc(100vh - 310px);
+    max-height: calc(100vh - 310px);
+  }
 }
 
 @media (max-width: 720px) {
@@ -406,7 +481,14 @@ kbd {
   .top-actions .button { min-height: 38px; padding: 0 10px; font-size: .8rem; }
   .workspace { padding: 8px; }
   .video-stage { min-height: 50vh; border-radius: 10px; }
-  .video-stage video { max-height: 62vh; }
+  .video-stage video,
+  .youtube-container,
+  .youtube-container iframe,
+  .youtube-container #youtubePlayer {
+    min-height: 50vh;
+    max-height: 62vh;
+  }
+  .youtube-input-group { flex-direction: column; }
   .annotation-actions { gap: 5px; }
   .action-button { min-height: 42px; padding: 0 9px; }
   .action-button kbd { display: none; }
@@ -424,7 +506,7 @@ kbd {
         <span>Annotazioni temporali per l'analisi filmica</span>
       </div>
       <div class="top-actions">
-        <button id="openVideoBtn" class="button secondary" type="button">Apri film</button>
+        <button id="openVideoBtn" class="button secondary" type="button">Apri video</button>
         <button id="showListBtn" class="button secondary" type="button" disabled>
           Annotazioni <span id="annotationCount" class="count-badge">0</span>
         </button>
@@ -435,28 +517,51 @@ kbd {
 
     <input id="fileInput" type="file" accept="video/*,.mp4,.m4v,.webm,.ogv,.ogg,.mov" hidden>
 
-    <section id="emptyState" class="empty-state" tabindex="0" aria-label="Carica un film">
+    <section id="emptyState" class="empty-state" tabindex="0" aria-label="Carica un video">
       <div class="empty-card">
-        <div class="empty-icon" aria-hidden="true">&#9654;</div>
-        <h1>Apri un film dal computer</h1>
-        <p>Il video resta sul dispositivo. Puoi scegliere un file oppure trascinarlo qui.</p>
-        <button id="emptyOpenBtn" class="button primary large" type="button">Seleziona film</button>
+        <div class="source-switch" role="tablist" aria-label="Selezione sorgente">
+          <button id="sourceLocalTab" class="source-tab is-active" type="button" role="tab" aria-selected="true">File locale</button>
+          <button id="sourceYoutubeTab" class="source-tab" type="button" role="tab" aria-selected="false">YouTube</button>
+        </div>
+
+        <div id="localSourcePanel" class="source-panel">
+          <div class="empty-icon" aria-hidden="true">&#9654;</div>
+          <h1>Apri un film dal computer</h1>
+          <p>Il video resta sul dispositivo. Puoi scegliere un file oppure trascinarlo qui.</p>
+          <button id="emptyOpenBtn" class="button primary large" type="button">Seleziona film</button>
+          <p class="format-note">La riproduzione dipende dai formati e codec supportati dal browser.</p>
+        </div>
+
+        <div id="youtubeSourcePanel" class="source-panel is-hidden">
+          <div class="empty-icon youtube-icon" aria-hidden="true">&#9658;</div>
+          <h1>Apri un video da YouTube</h1>
+          <p>Inserisci il link di un video YouTube pubblico o non in elenco incorporabile.</p>
+          <div class="youtube-input-group">
+            <input id="youtubeUrlInput" type="url" placeholder="https://www.youtube.com/watch?v=..." autocomplete="off">
+            <button id="youtubeOpenBtn" class="button primary large" type="button">Apri video</button>
+          </div>
+          <div id="youtubeInputError" class="form-error" role="alert" aria-live="polite"></div>
+          <p class="format-note">La riproduzione avviene tramite YouTube IFrame Player API ufficiale. Il video non viene scaricato.</p>
+        </div>
+
         <div id="resumeCard" class="resume-card is-hidden">
           <strong>Ultimo lavoro salvato</strong>
           <p id="resumeMeta" class="resume-meta"></p>
-          <p>Le annotazioni e il punto di riproduzione sono memorizzati in questo browser. Per ragioni di sicurezza devi riselezionare il file video.</p>
+          <p id="resumeNotice">Le annotazioni e il punto di riproduzione sono memorizzati in questo browser. Per ragioni di sicurezza devi riselezionare il file video.</p>
           <div class="resume-actions">
             <button id="resumeBtn" class="button secondary" type="button">Riprendi ultimo film</button>
             <button id="forgetResumeBtn" class="text-button danger" type="button">Dimentica</button>
           </div>
         </div>
-        <p class="format-note">La riproduzione dipende dai formati e codec supportati dal browser.</p>
       </div>
     </section>
 
     <section id="workspace" class="workspace is-hidden" aria-label="Area di visione e annotazione">
       <div id="videoStage" class="video-stage">
         <video id="video" controls playsinline preload="metadata"></video>
+        <div id="youtubeContainer" class="youtube-container is-hidden">
+          <div id="youtubePlayer"></div>
+        </div>
 
         <div id="dropOverlay" class="drop-overlay" aria-hidden="true">
           <div>Rilascia qui il nuovo film</div>
@@ -587,9 +692,17 @@ kbd {
     openVideoBtn: document.getElementById("openVideoBtn"),
     emptyOpenBtn: document.getElementById("emptyOpenBtn"),
     emptyState: document.getElementById("emptyState"),
+    sourceLocalTab: document.getElementById("sourceLocalTab"),
+    sourceYoutubeTab: document.getElementById("sourceYoutubeTab"),
+    localSourcePanel: document.getElementById("localSourcePanel"),
+    youtubeSourcePanel: document.getElementById("youtubeSourcePanel"),
+    youtubeUrlInput: document.getElementById("youtubeUrlInput"),
+    youtubeOpenBtn: document.getElementById("youtubeOpenBtn"),
+    youtubeInputError: document.getElementById("youtubeInputError"),
     workspace: document.getElementById("workspace"),
     videoStage: document.getElementById("videoStage"),
     video: document.getElementById("video"),
+    youtubeContainer: document.getElementById("youtubeContainer"),
     drawer: document.getElementById("drawer"),
     closeDrawerBtn: document.getElementById("closeDrawerBtn"),
     editorTabBtn: document.getElementById("editorTabBtn"),
@@ -627,14 +740,21 @@ kbd {
     saveIndicator: document.getElementById("saveIndicator"),
     resumeCard: document.getElementById("resumeCard"),
     resumeMeta: document.getElementById("resumeMeta"),
+    resumeNotice: document.getElementById("resumeNotice"),
     resumeBtn: document.getElementById("resumeBtn"),
     forgetResumeBtn: document.getElementById("forgetResumeBtn")
   };
 
   const state = {
+    sourceType: "local",
+    sourceId: null,
+    sourceLabel: null,
     file: null,
     objectUrl: null,
     projectKey: null,
+    fallbackProjectKey: null,
+    ytPlayer: null,
+    ytPollTimer: null,
     annotations: [],
     pendingIn: null,
     loaded: false,
@@ -644,8 +764,57 @@ kbd {
     resumeRequested: false
   };
 
+  const mediaAdapter = {
+    getCurrentTime() {
+      if (state.sourceType === "local" && els.video) {
+        return Number.isFinite(els.video.currentTime) ? els.video.currentTime : 0;
+      }
+      if (state.sourceType === "youtube" && state.ytPlayer && typeof state.ytPlayer.getCurrentTime === "function") {
+        const t = state.ytPlayer.getCurrentTime();
+        return Number.isFinite(t) ? t : 0;
+      }
+      return 0;
+    },
+    getDuration() {
+      if (state.sourceType === "local" && els.video) {
+        return Number.isFinite(els.video.duration) ? els.video.duration : 0;
+      }
+      if (state.sourceType === "youtube" && state.ytPlayer && typeof state.ytPlayer.getDuration === "function") {
+        const d = state.ytPlayer.getDuration();
+        return Number.isFinite(d) ? d : 0;
+      }
+      return 0;
+    },
+    play() {
+      if (state.sourceType === "local" && els.video) return els.video.play();
+      if (state.sourceType === "youtube" && state.ytPlayer && typeof state.ytPlayer.playVideo === "function") {
+        state.ytPlayer.playVideo();
+      }
+    },
+    pause() {
+      if (state.sourceType === "local" && els.video) return els.video.pause();
+      if (state.sourceType === "youtube" && state.ytPlayer && typeof state.ytPlayer.pauseVideo === "function") {
+        state.ytPlayer.pauseVideo();
+      }
+    },
+    seek(seconds) {
+      const dur = this.getDuration();
+      const target = clamp(seconds, 0, dur > 0 ? dur : seconds);
+      if (state.sourceType === "local" && els.video) {
+        els.video.currentTime = target;
+        els.video.pause();
+      } else if (state.sourceType === "youtube" && state.ytPlayer && typeof state.ytPlayer.seekTo === "function") {
+        state.ytPlayer.seekTo(target, true);
+        state.ytPlayer.pauseVideo();
+      }
+    },
+    isReady() {
+      return !!state.loaded;
+    }
+  };
+
   function nowSeconds() {
-    return Number.isFinite(els.video.currentTime) ? els.video.currentTime : 0;
+    return mediaAdapter.getCurrentTime();
   }
 
   function clamp(value, min, max) {
@@ -723,13 +892,16 @@ kbd {
   }
 
   function writeLastSession() {
-    if (!state.file || !state.projectKey) return;
+    if (!state.projectKey) return;
     try {
       localStorage.setItem(LAST_SESSION_KEY, JSON.stringify({
+        sourceType: state.sourceType,
+        sourceId: state.sourceId,
+        sourceLabel: state.sourceLabel,
         projectKey: state.projectKey,
-        file: fileMeta(state.file),
+        file: state.file ? fileMeta(state.file) : null,
         annotationCount: state.annotations.length,
-        playhead: Number(nowSeconds().toFixed(3)),
+        playhead: Number(mediaAdapter.getCurrentTime().toFixed(3)),
         updatedAt: new Date().toISOString()
       }));
       updateResumeCard();
@@ -741,13 +913,27 @@ kbd {
   function updateResumeCard() {
     if (!els.resumeCard) return;
     const session = readLastSession();
-    if (!session || !session.file) {
+    if (!session) {
       els.resumeCard.classList.add("is-hidden");
       return;
     }
     const count = Number(session.annotationCount || 0);
     const position = Number(session.playhead || 0);
-    els.resumeMeta.textContent = session.file.name + " · " + count + (count === 1 ? " annotazione" : " annotazioni") + " · posizione " + formatTime(position);
+    const countText = count + (count === 1 ? " annotazione" : " annotazioni");
+
+    if (session.sourceType === "youtube" || (!session.file && session.sourceId)) {
+      const vid = session.sourceId || (session.projectKey ? session.projectKey.split(":").pop() : "video");
+      els.resumeMeta.textContent = "YouTube · " + vid + " · " + countText + " · posizione " + formatTime(position);
+      if (els.resumeNotice) els.resumeNotice.textContent = "Le annotazioni e il punto di riproduzione sono memorizzati in questo browser.";
+      els.resumeBtn.textContent = "Riprendi video YouTube";
+    } else if (session.file) {
+      els.resumeMeta.textContent = session.file.name + " · " + countText + " · posizione " + formatTime(position);
+      if (els.resumeNotice) els.resumeNotice.textContent = "Le annotazioni e il punto di riproduzione sono memorizzati in questo browser. Per ragioni di sicurezza devi riselezionare il file video.";
+      els.resumeBtn.textContent = "Riprendi ultimo film";
+    } else {
+      els.resumeCard.classList.add("is-hidden");
+      return;
+    }
     els.resumeCard.classList.remove("is-hidden");
   }
 
@@ -756,8 +942,8 @@ kbd {
     els.saveIndicator.textContent = text || "Salvato localmente";
   }
 
-  function projectStorageKey(file) {
-    return "video-annotator:v1:" + [file.name, file.size, file.lastModified].join(":");
+  function projectStorageKey(sourceType, sourceId) {
+    return "video-annotator:v1:" + sourceType + ":" + sourceId;
   }
 
   function legacyProjectStorageKey(file) {
@@ -768,9 +954,12 @@ kbd {
     if (!state.projectKey) return;
     try {
       localStorage.setItem(state.projectKey, JSON.stringify({
+        sourceType: state.sourceType,
+        sourceId: state.sourceId,
+        sourceLabel: state.sourceLabel,
         annotations: state.annotations,
         pendingIn: state.pendingIn,
-        playhead: Number(nowSeconds().toFixed(3)),
+        playhead: Number(mediaAdapter.getCurrentTime().toFixed(3)),
         updatedAt: new Date().toISOString()
       }));
       writeLastSession();
@@ -790,6 +979,9 @@ kbd {
       let raw = localStorage.getItem(state.projectKey);
       if (!raw && state.fallbackProjectKey) {
         raw = localStorage.getItem(state.fallbackProjectKey);
+      }
+      if (!raw && state.sourceType === "local" && state.file) {
+        raw = localStorage.getItem(legacyProjectStorageKey(state.file));
       }
       if (!raw) return;
       const parsed = JSON.parse(raw);
@@ -813,9 +1005,25 @@ kbd {
   function savePlaybackPosition(force = false) {
     if (!state.loaded || !state.projectKey) return;
     const now = Date.now();
-    if (!force && now - state.lastPlaybackSaveAt < 2000) return;
+    if (!force && now - state.lastPlaybackSaveAt < 1500) return;
     state.lastPlaybackSaveAt = now;
     saveLocal();
+  }
+
+  function startUiTimer() {
+    stopUiTimer();
+    state.ytPollTimer = setInterval(() => {
+      if (!state.loaded) return;
+      updateTimeUI();
+      savePlaybackPosition(false);
+    }, 250);
+  }
+
+  function stopUiTimer() {
+    if (state.ytPollTimer) {
+      clearInterval(state.ytPollTimer);
+      state.ytPollTimer = null;
+    }
   }
 
   function clearVideoError() {
@@ -823,13 +1031,221 @@ kbd {
     if (current) current.remove();
   }
 
-  function showVideoError() {
+  function showVideoError(customMessage, customTitle) {
     clearVideoError();
     const panel = document.createElement("div");
     panel.className = "video-error";
-    panel.innerHTML = '<div><h2>Il browser non riesce a riprodurre questo file</h2><p>Il contenitore o il codec del video non e supportato. Per la massima compatibilita usa MP4 con video H.264 e audio AAC, oppure WebM.</p><button class="button primary" type="button">Apri un altro film</button></div>';
-    panel.querySelector("button").addEventListener("click", () => els.fileInput.click());
+    const title = (typeof customTitle === "string" && customTitle) ? customTitle : "Il browser non riesce a riprodurre questo file";
+    const msg = (typeof customMessage === "string" && customMessage) ? customMessage : "Il contenitore o il codec del video non e supportato. Per la massima compatibilita usa MP4 con video H.264 e audio AAC, oppure WebM.";
+    panel.innerHTML = '<div><h2>' + escapeHtml(title) + '</h2><p>' + escapeHtml(msg) + '</p><button class="button primary" type="button">Apri un altro video</button></div>';
+    panel.querySelector("button").addEventListener("click", () => {
+      clearVideoError();
+      returnToSourceSelect();
+    });
     els.videoStage.appendChild(panel);
+  }
+
+  function returnToSourceSelect() {
+    savePlaybackPosition(true);
+    mediaAdapter.pause();
+    stopUiTimer();
+    closeDrawer();
+    els.workspace.classList.add("is-hidden");
+    els.emptyState.classList.remove("is-hidden");
+    updateResumeCard();
+  }
+
+  function parseYouTubeId(input) {
+    if (!input) return null;
+    const text = String(input).trim();
+    if (/^[a-zA-Z0-9_-]{11}$/.test(text)) {
+      return text;
+    }
+    try {
+      const urlStr = text.startsWith("http://") || text.startsWith("https://") ? text : "https://" + text;
+      const parsed = new URL(urlStr);
+      const hostname = parsed.hostname.toLowerCase().replace(/^www\./, "").replace(/^m\./, "").replace(/^music\./, "");
+      if (hostname === "youtube.com") {
+        if (parsed.pathname === "/watch") {
+          const v = parsed.searchParams.get("v");
+          if (v && /^[a-zA-Z0-9_-]{11}$/.test(v)) return v;
+        } else if (parsed.pathname.startsWith("/embed/")) {
+          const v = parsed.pathname.split("/")[2];
+          if (v && /^[a-zA-Z0-9_-]{11}$/.test(v)) return v;
+        } else if (parsed.pathname.startsWith("/shorts/")) {
+          const v = parsed.pathname.split("/")[2];
+          if (v && /^[a-zA-Z0-9_-]{11}$/.test(v)) return v;
+        }
+      } else if (hostname === "youtu.be") {
+        const v = parsed.pathname.slice(1).split("/")[0];
+        if (v && /^[a-zA-Z0-9_-]{11}$/.test(v)) return v;
+      }
+    } catch (e) {
+      // ignore
+    }
+    return null;
+  }
+
+  function getYouTubeErrorMessage(code) {
+    switch (code) {
+      case 2:
+        return "Parametro URL o identificativo video non valido.";
+      case 5:
+        return "Errore di riproduzione HTML5 nel player YouTube.";
+      case 100:
+        return "Video non trovato. Il video potrebbe essere stato rimosso o impostato come privato.";
+      case 101:
+      case 150:
+        return "L'autore del video o YouTube non consentono la riproduzione tramite incorporamento.";
+      case 153:
+        return "Impossibile riprodurre questo video: restrizioni di origine o referer non identificabile. Verifica che l'applicazione sia servita tramite HTTP/HTTPS e che il video consenta l'incorporamento.";
+      default:
+        return "Si è verificato un errore nella riproduzione del video YouTube (codice " + code + ").";
+    }
+  }
+
+  let isYouTubeApiLoading = false;
+  let isYouTubeApiReady = false;
+  const youtubeApiCallbacks = [];
+
+  function ensureYouTubeApi(callback) {
+    if (isYouTubeApiReady && window.YT && window.YT.Player) {
+      callback();
+      return;
+    }
+    youtubeApiCallbacks.push(callback);
+    if (isYouTubeApiLoading) return;
+    isYouTubeApiLoading = true;
+
+    const prevReady = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => {
+      isYouTubeApiReady = true;
+      isYouTubeApiLoading = false;
+      if (typeof prevReady === "function") prevReady();
+      while (youtubeApiCallbacks.length > 0) {
+        const cb = youtubeApiCallbacks.shift();
+        try { cb(); } catch (err) { console.error("Error in YT callback:", err); }
+      }
+    };
+
+    if (!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')) {
+      const tag = document.createElement("script");
+      tag.src = "https://www.youtube.com/iframe_api";
+      tag.onerror = () => {
+        isYouTubeApiLoading = false;
+        showToast("Impossibile caricare le API di YouTube. Verifica la connessione.");
+      };
+      document.head.appendChild(tag);
+    }
+  }
+
+  function onYouTubePlayerReady(event, videoId) {
+    if (state.sourceType !== "youtube" || state.sourceId !== videoId) return;
+    state.loaded = true;
+    clearVideoError();
+    const dur = mediaAdapter.getDuration();
+    if (state.restoredPlayhead > 0 && dur > 0) {
+      mediaAdapter.seek(state.restoredPlayhead);
+    }
+    renderAll();
+    writeLastSession();
+    if (state.annotations.length > 0 || state.restoredPlayhead > 0) {
+      const parts = [];
+      if (state.annotations.length > 0) parts.push(state.annotations.length + " annotazioni");
+      if (state.restoredPlayhead > 0) parts.push("posizione " + formatTime(state.restoredPlayhead));
+      showToast("Ripristinati: " + parts.join(" · ") + ".");
+    }
+  }
+
+  function onYouTubePlayerStateChange(event) {
+    if (window.YT && event.data === window.YT.PlayerState.PLAYING) {
+      startUiTimer();
+    } else if (window.YT && (event.data === window.YT.PlayerState.PAUSED || event.data === window.YT.PlayerState.ENDED)) {
+      stopUiTimer();
+      updateTimeUI();
+      savePlaybackPosition(true);
+    }
+  }
+
+  function onYouTubePlayerError(event) {
+    const code = event.data;
+    const msg = getYouTubeErrorMessage(code);
+    showVideoError(msg, "Impossibile riprodurre il video YouTube");
+  }
+
+  function initYouTubePlayer(videoId) {
+    if (state.ytPlayer && typeof state.ytPlayer.loadVideoById === "function") {
+      try {
+        state.ytPlayer.loadVideoById({
+          videoId: videoId,
+          startSeconds: state.restoredPlayhead > 0 ? state.restoredPlayhead : 0
+        });
+        state.loaded = true;
+        renderAll();
+        return;
+      } catch (e) {
+        // Fallback to recreating player if error
+      }
+    }
+
+    els.youtubeContainer.innerHTML = '<div id="youtubePlayer"></div>';
+
+    const playerVars = {
+      controls: 1,
+      playsinline: 1,
+      rel: 0,
+      modestbranding: 1
+    };
+    if (window.location.protocol === "http:" || window.location.protocol === "https:") {
+      playerVars.origin = window.location.origin;
+    }
+
+    state.ytPlayer = new window.YT.Player("youtubePlayer", {
+      videoId: videoId,
+      playerVars: playerVars,
+      events: {
+        onReady: (event) => onYouTubePlayerReady(event, videoId),
+        onStateChange: (event) => onYouTubePlayerStateChange(event),
+        onError: (event) => onYouTubePlayerError(event)
+      }
+    });
+  }
+
+  function loadYouTubeVideo(videoId, isAutoResume = false) {
+    if (!videoId) return;
+
+    savePlaybackPosition(true);
+    stopUiTimer();
+
+    if (state.objectUrl) URL.revokeObjectURL(state.objectUrl);
+    state.file = null;
+    state.objectUrl = null;
+    els.video.pause();
+    els.video.removeAttribute("src");
+    els.video.load();
+    els.video.classList.add("is-hidden");
+
+    els.youtubeContainer.classList.remove("is-hidden");
+
+    state.sourceType = "youtube";
+    state.sourceId = videoId;
+    state.sourceLabel = "https://www.youtube.com/watch?v=" + videoId;
+    state.projectKey = projectStorageKey("youtube", videoId);
+    state.fallbackProjectKey = null;
+    state.loaded = false;
+    state.pendingIn = null;
+    loadLocal();
+
+    clearVideoError();
+    closeDrawer();
+    els.videoName.textContent = "YouTube · " + videoId;
+    els.emptyState.classList.add("is-hidden");
+    els.workspace.classList.remove("is-hidden");
+    renderAll();
+
+    ensureYouTubeApi(() => {
+      initYouTubePlayer(videoId);
+    });
   }
 
   function loadVideo(file) {
@@ -846,12 +1262,25 @@ kbd {
       return;
     }
 
+    savePlaybackPosition(true);
+    stopUiTimer();
+
+    if (state.ytPlayer && typeof state.ytPlayer.pauseVideo === "function") {
+      try { state.ytPlayer.pauseVideo(); } catch (e) {}
+    }
+    els.youtubeContainer.classList.add("is-hidden");
+    els.video.classList.remove("is-hidden");
+
     if (state.objectUrl) URL.revokeObjectURL(state.objectUrl);
     clearVideoError();
     closeDrawer();
+
+    state.sourceType = "local";
+    state.sourceId = [file.name, file.size, file.lastModified].join(":");
+    state.sourceLabel = file.name;
     state.file = file;
-    state.projectKey = projectStorageKey(file);
-    state.fallbackProjectKey = legacyProjectStorageKey(file);
+    state.projectKey = projectStorageKey("local", state.sourceId);
+    state.fallbackProjectKey = "video-annotator:v1:" + state.sourceId;
     state.objectUrl = URL.createObjectURL(file);
     state.loaded = false;
     state.pendingIn = null;
@@ -859,10 +1288,37 @@ kbd {
 
     els.video.src = state.objectUrl;
     els.video.load();
-    els.videoName.textContent = file.name;
+    els.videoName.textContent = "File locale · " + file.name;
     els.emptyState.classList.add("is-hidden");
     els.workspace.classList.remove("is-hidden");
     renderAll();
+  }
+
+  function setSourceTab(tab) {
+    const isLocal = tab === "local";
+    els.sourceLocalTab.classList.toggle("is-active", isLocal);
+    els.sourceYoutubeTab.classList.toggle("is-active", !isLocal);
+    els.sourceLocalTab.setAttribute("aria-selected", String(isLocal));
+    els.sourceYoutubeTab.setAttribute("aria-selected", String(!isLocal));
+    els.localSourcePanel.classList.toggle("is-hidden", !isLocal);
+    els.youtubeSourcePanel.classList.toggle("is-hidden", isLocal);
+    els.youtubeInputError.textContent = "";
+  }
+
+  function handleYouTubeSubmit() {
+    const inputVal = els.youtubeUrlInput.value.trim();
+    if (!inputVal) {
+      els.youtubeInputError.textContent = "Inserisci l'URL di un video YouTube.";
+      return;
+    }
+    const videoId = parseYouTubeId(inputVal);
+    if (!videoId) {
+      els.youtubeInputError.textContent = "URL YouTube non valido o non supportato. Inserisci un link valido a un singolo video.";
+      return;
+    }
+    els.youtubeInputError.textContent = "";
+    els.youtubeUrlInput.value = "";
+    loadYouTubeVideo(videoId, false);
   }
 
   function annotationSort(a, b) {
@@ -917,9 +1373,10 @@ kbd {
 
   function beginMarker() {
     if (!state.loaded) return;
-    els.video.pause();
+    mediaAdapter.pause();
     state.pendingIn = null;
     updatePendingUI();
+    savePlaybackPosition(true);
     els.annotationId.value = "";
     setAnnotationType("marker");
     els.inTime.value = formatTime(nowSeconds());
@@ -934,6 +1391,7 @@ kbd {
     if (!state.loaded) return;
     state.pendingIn = nowSeconds();
     updatePendingUI();
+    savePlaybackPosition(true);
     showToast("IN impostato a " + formatTime(state.pendingIn));
   }
 
@@ -948,7 +1406,7 @@ kbd {
       showToast("Il punto OUT deve essere successivo al punto IN.");
       return;
     }
-    els.video.pause();
+    mediaAdapter.pause();
     els.annotationId.value = "";
     setAnnotationType("segment");
     els.inTime.value = formatTime(state.pendingIn);
@@ -957,6 +1415,7 @@ kbd {
     els.formError.textContent = "";
     state.pendingIn = null;
     updatePendingUI();
+    savePlaybackPosition(true);
     openDrawer("editor");
     setTimeout(() => els.commentText.focus(), 0);
   }
@@ -964,7 +1423,8 @@ kbd {
   function editAnnotation(id) {
     const item = state.annotations.find(a => a.id === id);
     if (!item) return;
-    els.video.pause();
+    mediaAdapter.pause();
+    savePlaybackPosition(true);
     els.annotationId.value = item.id;
     setAnnotationType(item.type);
     els.inTime.value = formatTime(item.in);
@@ -981,14 +1441,17 @@ kbd {
     if (!window.confirm("Eliminare questa annotazione?")) return;
     state.annotations = state.annotations.filter(a => a.id !== id);
     saveLocal();
+    savePlaybackPosition(true);
     renderAll();
     showToast("Annotazione eliminata.");
   }
 
   function seekTo(seconds) {
     if (!state.loaded) return;
-    els.video.currentTime = clamp(seconds, 0, Number.isFinite(els.video.duration) ? els.video.duration : seconds);
-    els.video.pause();
+    const dur = mediaAdapter.getDuration();
+    const target = clamp(seconds, 0, Number.isFinite(dur) && dur > 0 ? dur : seconds);
+    mediaAdapter.seek(target);
+    savePlaybackPosition(true);
   }
 
   function validateAndSave(event) {
@@ -997,7 +1460,7 @@ kbd {
     const inSeconds = parseTime(els.inTime.value);
     const outSeconds = type === "segment" ? parseTime(els.outTime.value) : null;
     const comment = els.commentText.value.trim();
-    const duration = els.video.duration;
+    const duration = mediaAdapter.getDuration();
 
     els.formError.textContent = "";
 
@@ -1047,6 +1510,7 @@ kbd {
 
     state.annotations.sort(annotationSort);
     saveLocal();
+    savePlaybackPosition(true);
     renderAll();
     closeDrawer();
     showToast(existingId ? "Annotazione aggiornata." : "Annotazione salvata.");
@@ -1082,7 +1546,7 @@ kbd {
 
   function renderTimeline() {
     els.annotationTimeline.querySelectorAll(".timeline-marker, .timeline-segment").forEach(node => node.remove());
-    const duration = els.video.duration;
+    const duration = mediaAdapter.getDuration();
     if (!Number.isFinite(duration) || duration <= 0) return;
 
     state.annotations.forEach(item => {
@@ -1106,14 +1570,14 @@ kbd {
   }
 
   function updateTimeUI() {
-    const duration = Number.isFinite(els.video.duration) ? els.video.duration : 0;
+    const duration = mediaAdapter.getDuration();
     const current = nowSeconds();
     els.videoTime.textContent = formatTime(current) + " / " + formatTime(duration);
     els.timelineProgress.style.width = duration > 0 ? clamp(current / duration * 100, 0, 100) + "%" : "0%";
   }
 
   function updatePendingUI() {
-    const duration = els.video.duration;
+    const duration = mediaAdapter.getDuration();
     if (state.pendingIn === null) {
       els.pendingStatus.textContent = "";
       els.pendingInMarker.classList.add("is-hidden");
@@ -1145,25 +1609,31 @@ kbd {
       return;
     }
     const rows = [
-      ["ID", "Tipo", "IN", "OUT", "IN_secondi", "OUT_secondi", "Commento", "Video"]
+      ["ID", "Tipo", "IN", "OUT", "IN_secondi", "OUT_secondi", "Commento", "Sorgente", "Video"]
     ];
+    const sourceIdentifier = state.sourceType === "youtube"
+      ? ("https://www.youtube.com/watch?v=" + state.sourceId)
+      : (state.file ? state.file.name : (state.sourceLabel || ""));
     state.annotations.slice().sort(annotationSort).forEach((item, index) => {
       rows.push([
         index + 1,
         item.type === "segment" ? "segmento" : "marker",
         formatTime(item.in),
-        item.type === "segment" ? formatTime(item.out) : "",
+        item.type === "segment" && Number.isFinite(item.out) ? formatTime(item.out) : "",
         item.in.toFixed(3),
         item.type === "segment" && Number.isFinite(item.out) ? item.out.toFixed(3) : "",
         item.comment,
-        state.file ? state.file.name : ""
+        state.sourceType,
+        sourceIdentifier
       ]);
     });
     const csv = "\uFEFF" + rows.map(row => row.map(csvCell).join(",")).join("\r\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    const base = state.file ? state.file.name.replace(/\.[^.]+$/, "") : "film";
+    const base = state.sourceType === "youtube"
+      ? ("youtube_" + state.sourceId)
+      : (state.file ? state.file.name.replace(/\.[^.]+$/, "") : "film");
     link.href = url;
     link.download = base + "_annotazioni.csv";
     document.body.appendChild(link);
@@ -1184,10 +1654,11 @@ kbd {
 
   function clearAllAnnotations() {
     if (state.annotations.length === 0) return;
-    if (!window.confirm("Cancellare tutte le annotazioni di questo film?")) return;
+    if (!window.confirm("Cancellare tutte le annotazioni di questo video?")) return;
     state.annotations = [];
     state.pendingIn = null;
     saveLocal();
+    savePlaybackPosition(true);
     renderAll();
     showToast("Annotazioni cancellate.");
   }
@@ -1202,11 +1673,35 @@ kbd {
     return target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable);
   }
 
-  els.openVideoBtn.addEventListener("click", () => els.fileInput.click());
+  els.openVideoBtn.addEventListener("click", () => {
+    if (state.loaded) {
+      returnToSourceSelect();
+    } else {
+      if (els.sourceYoutubeTab && els.sourceYoutubeTab.classList.contains("is-active")) {
+        els.youtubeUrlInput.focus();
+      } else {
+        els.fileInput.click();
+      }
+    }
+  });
   els.emptyOpenBtn.addEventListener("click", () => els.fileInput.click());
+  els.sourceLocalTab.addEventListener("click", () => setSourceTab("local"));
+  els.sourceYoutubeTab.addEventListener("click", () => setSourceTab("youtube"));
+  els.youtubeOpenBtn.addEventListener("click", handleYouTubeSubmit);
+  els.youtubeUrlInput.addEventListener("keydown", event => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      handleYouTubeSubmit();
+    }
+  });
   els.resumeBtn.addEventListener("click", () => {
-    state.resumeRequested = true;
-    els.fileInput.click();
+    const session = readLastSession();
+    if (session && session.sourceType === "youtube" && session.sourceId) {
+      loadYouTubeVideo(session.sourceId, true);
+    } else {
+      state.resumeRequested = true;
+      els.fileInput.click();
+    }
   });
   els.forgetResumeBtn.addEventListener("click", () => {
     try {
@@ -1243,7 +1738,11 @@ kbd {
   els.video.addEventListener("pause", () => savePlaybackPosition(true));
   els.video.addEventListener("seeked", () => savePlaybackPosition(true));
   els.video.addEventListener("durationchange", renderTimeline);
-  els.video.addEventListener("error", showVideoError);
+  els.video.addEventListener("error", () => {
+    if (state.sourceType === "local" && state.objectUrl) {
+      showVideoError();
+    }
+  });
 
   els.markerBtn.addEventListener("click", beginMarker);
   els.dockListBtn.addEventListener("click", () => openDrawer("list"));
@@ -1276,11 +1775,12 @@ kbd {
   });
 
   els.annotationTimeline.addEventListener("click", event => {
-    if (!state.loaded || !Number.isFinite(els.video.duration)) return;
+    const dur = mediaAdapter.getDuration();
+    if (!state.loaded || !Number.isFinite(dur) || dur <= 0) return;
     if (event.target !== els.annotationTimeline && event.target !== els.timelineProgress) return;
     const rect = els.annotationTimeline.getBoundingClientRect();
     const ratio = clamp((event.clientX - rect.left) / rect.width, 0, 1);
-    seekTo(ratio * els.video.duration);
+    seekTo(ratio * dur);
   });
 
   [els.emptyState, els.videoStage].forEach(zone => {
@@ -1311,6 +1811,12 @@ kbd {
     else if (key === "f") { event.preventDefault(); toggleFullscreen(); }
   });
 
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") {
+      savePlaybackPosition(true);
+    }
+  });
+
   window.addEventListener("beforeunload", () => {
     savePlaybackPosition(true);
     if (state.objectUrl) URL.revokeObjectURL(state.objectUrl);
@@ -1319,6 +1825,12 @@ kbd {
   updateTypeUI();
   updateResumeCard();
   renderAll();
+
+  // Auto-restore YouTube session if present
+  const initSession = readLastSession();
+  if (initSession && initSession.sourceType === "youtube" && initSession.sourceId) {
+    loadYouTubeVideo(initSession.sourceId, true);
+  }
 })();
 
 </script>
