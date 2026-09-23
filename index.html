@@ -550,7 +550,7 @@ kbd {
           <p id="resumeNotice">Le annotazioni e il punto di riproduzione sono memorizzati in questo browser. Per ragioni di sicurezza devi riselezionare il file video.</p>
           <div class="resume-actions">
             <button id="resumeBtn" class="button secondary" type="button">Riprendi ultimo film</button>
-            <button id="forgetResumeBtn" class="text-button danger" type="button">Dimentica</button>
+            <button id="forgetResumeBtn" class="text-button danger" type="button">Dimentica questa sessione</button>
           </div>
         </div>
       </div>
@@ -892,7 +892,7 @@ kbd {
   }
 
   function writeLastSession() {
-    if (!state.projectKey) return;
+    if (!state.loaded || !state.projectKey || !state.sourceId) return;
     try {
       localStorage.setItem(LAST_SESSION_KEY, JSON.stringify({
         sourceType: state.sourceType,
@@ -913,7 +913,7 @@ kbd {
   function updateResumeCard() {
     if (!els.resumeCard) return;
     const session = readLastSession();
-    if (!session) {
+    if (!session || !session.sourceType || !session.sourceId) {
       els.resumeCard.classList.add("is-hidden");
       return;
     }
@@ -951,7 +951,7 @@ kbd {
   }
 
   function saveLocal() {
-    if (!state.projectKey) return;
+    if (!state.loaded || !state.projectKey || !state.sourceId) return;
     try {
       localStorage.setItem(state.projectKey, JSON.stringify({
         sourceType: state.sourceType,
@@ -1003,7 +1003,7 @@ kbd {
   }
 
   function savePlaybackPosition(force = false) {
-    if (!state.loaded || !state.projectKey) return;
+    if (!state.loaded || !state.projectKey || !state.sourceId) return;
     const now = Date.now();
     if (!force && now - state.lastPlaybackSaveAt < 1500) return;
     state.lastPlaybackSaveAt = now;
@@ -1013,7 +1013,7 @@ kbd {
   function startUiTimer() {
     stopUiTimer();
     state.ytPollTimer = setInterval(() => {
-      if (!state.loaded) return;
+      if (!state.loaded || !state.projectKey || !state.sourceId) return;
       updateTimeUI();
       savePlaybackPosition(false);
     }, 250);
@@ -1024,6 +1024,76 @@ kbd {
       clearInterval(state.ytPollTimer);
       state.ytPollTimer = null;
     }
+  }
+
+  function teardownCurrentMedia(options = {}) {
+    stopUiTimer();
+
+    // 1. YouTube player and container cleanup
+    if (state.ytPlayer) {
+      try { state.ytPlayer.pauseVideo(); } catch (e) {}
+      try { state.ytPlayer.stopVideo(); } catch (e) {}
+      try {
+        if (typeof state.ytPlayer.destroy === "function") {
+          state.ytPlayer.destroy();
+        }
+      } catch (e) {}
+      state.ytPlayer = null;
+    }
+    if (els.youtubeContainer) {
+      els.youtubeContainer.innerHTML = "";
+      els.youtubeContainer.classList.add("is-hidden");
+    }
+    document.querySelectorAll('#youtubeContainer iframe, iframe[src*="youtube"]').forEach(iframe => {
+      try { iframe.remove(); } catch (e) {}
+    });
+
+    // 2. Local video element cleanup
+    if (els.video) {
+      try { els.video.pause(); } catch (e) {}
+      els.video.removeAttribute("src");
+      try { els.video.load(); } catch (e) {}
+      els.video.classList.add("is-hidden");
+    }
+    if (state.objectUrl) {
+      try { URL.revokeObjectURL(state.objectUrl); } catch (e) {}
+      state.objectUrl = null;
+    }
+    state.file = null;
+
+    // 3. Optional complete state reset
+    if (options.resetState) {
+      state.loaded = false;
+      state.sourceType = null;
+      state.sourceId = null;
+      state.sourceLabel = null;
+      state.projectKey = null;
+      state.fallbackProjectKey = null;
+      state.annotations = [];
+      state.pendingIn = null;
+      state.restoredPlayhead = 0;
+      state.lastPlaybackSaveAt = 0;
+      state.resumeRequested = false;
+    }
+  }
+
+  function forgetCurrentSession() {
+    // 1. Teardown active media completely and reset runtime state
+    teardownCurrentMedia({ resetState: true });
+
+    // 2. Remove session keys from storage
+    try {
+      localStorage.removeItem(LAST_SESSION_KEY);
+      localStorage.removeItem(LEGACY_LAST_SESSION_KEY);
+    } catch (error) {}
+
+    // 3. Reset UI to empty/initial state
+    closeDrawer();
+    clearVideoError();
+    renderAll();
+    updateResumeCard();
+
+    showToast("Sessione dimenticata. Il video non verrà ripristinato automaticamente; le annotazioni del video restano salvate localmente.");
   }
 
   function clearVideoError() {
@@ -1046,9 +1116,14 @@ kbd {
   }
 
   function returnToSourceSelect() {
-    savePlaybackPosition(true);
+    if (state.loaded && state.projectKey && state.sourceId) {
+      savePlaybackPosition(true);
+    }
     mediaAdapter.pause();
     stopUiTimer();
+    if (state.ytPlayer && typeof state.ytPlayer.pauseVideo === "function") {
+      try { state.ytPlayer.pauseVideo(); } catch (e) {}
+    }
     closeDrawer();
     els.workspace.classList.add("is-hidden");
     els.emptyState.classList.remove("is-hidden");
@@ -1140,7 +1215,14 @@ kbd {
   }
 
   function onYouTubePlayerReady(event, videoId) {
-    if (state.sourceType !== "youtube" || state.sourceId !== videoId) return;
+    if (!state.projectKey || state.sourceType !== "youtube" || state.sourceId !== videoId) {
+      try {
+        if (event && event.target && typeof event.target.destroy === "function") {
+          event.target.destroy();
+        }
+      } catch (e) {}
+      return;
+    }
     state.loaded = true;
     clearVideoError();
     const dur = mediaAdapter.getDuration();
@@ -1158,6 +1240,7 @@ kbd {
   }
 
   function onYouTubePlayerStateChange(event) {
+    if (!state.loaded || !state.projectKey || state.sourceType !== "youtube") return;
     if (window.YT && event.data === window.YT.PlayerState.PLAYING) {
       startUiTimer();
     } else if (window.YT && (event.data === window.YT.PlayerState.PAUSED || event.data === window.YT.PlayerState.ENDED)) {
@@ -1168,12 +1251,17 @@ kbd {
   }
 
   function onYouTubePlayerError(event) {
+    if (!state.projectKey || state.sourceType !== "youtube") return;
     const code = event.data;
     const msg = getYouTubeErrorMessage(code);
     showVideoError(msg, "Impossibile riprodurre il video YouTube");
   }
 
   function initYouTubePlayer(videoId) {
+    if (!state.projectKey || state.sourceType !== "youtube" || state.sourceId !== videoId) {
+      return;
+    }
+
     if (state.ytPlayer && typeof state.ytPlayer.loadVideoById === "function") {
       try {
         state.ytPlayer.loadVideoById({
@@ -1214,16 +1302,11 @@ kbd {
   function loadYouTubeVideo(videoId, isAutoResume = false) {
     if (!videoId) return;
 
-    savePlaybackPosition(true);
-    stopUiTimer();
+    if (state.loaded && state.projectKey && state.sourceId) {
+      savePlaybackPosition(true);
+    }
 
-    if (state.objectUrl) URL.revokeObjectURL(state.objectUrl);
-    state.file = null;
-    state.objectUrl = null;
-    els.video.pause();
-    els.video.removeAttribute("src");
-    els.video.load();
-    els.video.classList.add("is-hidden");
+    teardownCurrentMedia({ resetState: false });
 
     els.youtubeContainer.classList.remove("is-hidden");
 
@@ -1262,18 +1345,13 @@ kbd {
       return;
     }
 
-    savePlaybackPosition(true);
-    stopUiTimer();
-
-    if (state.ytPlayer && typeof state.ytPlayer.pauseVideo === "function") {
-      try { state.ytPlayer.pauseVideo(); } catch (e) {}
+    if (state.loaded && state.projectKey && state.sourceId) {
+      savePlaybackPosition(true);
     }
-    els.youtubeContainer.classList.add("is-hidden");
-    els.video.classList.remove("is-hidden");
 
-    if (state.objectUrl) URL.revokeObjectURL(state.objectUrl);
-    clearVideoError();
-    closeDrawer();
+    teardownCurrentMedia({ resetState: false });
+
+    els.video.classList.remove("is-hidden");
 
     state.sourceType = "local";
     state.sourceId = [file.name, file.size, file.lastModified].join(":");
@@ -1703,14 +1781,7 @@ kbd {
       els.fileInput.click();
     }
   });
-  els.forgetResumeBtn.addEventListener("click", () => {
-    try {
-      localStorage.removeItem(LAST_SESSION_KEY);
-      localStorage.removeItem(LEGACY_LAST_SESSION_KEY);
-    } catch (error) {}
-    updateResumeCard();
-    showToast("Riferimento all'ultima sessione rimosso. Le annotazioni dei singoli film restano salvate.");
-  });
+  els.forgetResumeBtn.addEventListener("click", forgetCurrentSession);
   els.fileInput.addEventListener("change", () => {
     if (els.fileInput.files && els.fileInput.files[0]) loadVideo(els.fileInput.files[0]);
     els.fileInput.value = "";
@@ -1813,12 +1884,16 @@ kbd {
 
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden") {
-      savePlaybackPosition(true);
+      if (state.loaded && state.projectKey && state.sourceId) {
+        savePlaybackPosition(true);
+      }
     }
   });
 
   window.addEventListener("beforeunload", () => {
-    savePlaybackPosition(true);
+    if (state.loaded && state.projectKey && state.sourceId) {
+      savePlaybackPosition(true);
+    }
     if (state.objectUrl) URL.revokeObjectURL(state.objectUrl);
   });
 

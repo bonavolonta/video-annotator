@@ -371,4 +371,210 @@ assert(ytCsv.includes("àèéìòù"), "Unicode must be preserved");
 
 console.log("   ✓ CSV Export v1.2 tests passed!");
 
+// 6. Media Teardown & Forget Session Semantics
+console.log("\n6. Testing Media Teardown & Forget Session Semantics...");
+
+function createTeardownEnvironment() {
+  const store = {};
+  const mockStorage = {
+    getItem: (k) => store[k] || null,
+    setItem: (k, v) => { store[k] = String(v); },
+    removeItem: (k) => { delete store[k]; }
+  };
+
+  const state = {
+    sourceType: "youtube",
+    sourceId: "test_vid_123",
+    sourceLabel: "https://www.youtube.com/watch?v=test_vid_123",
+    projectKey: "video-annotator:v1:youtube:test_vid_123",
+    fallbackProjectKey: null,
+    file: null,
+    objectUrl: null,
+    loaded: true,
+    annotations: [{ id: "a1", type: "marker", in: 10, comment: "nota" }],
+    pendingIn: null,
+    restoredPlayhead: 10,
+    lastPlaybackSaveAt: Date.now(),
+    resumeRequested: false,
+    ytPollTimer: 12345,
+    ytPlayer: {
+      paused: false,
+      destroyed: false,
+      pauseVideo() { this.paused = true; },
+      stopVideo() { this.paused = true; },
+      destroy() { this.destroyed = true; },
+      getCurrentTime() { return 10; },
+      getDuration() { return 100; }
+    }
+  };
+
+  const els = {
+    youtubeContainer: {
+      innerHTML: '<div id="youtubePlayer"><iframe src="https://youtube.com/embed/test_vid_123"></iframe></div>',
+      classList: {
+        classes: new Set(),
+        add(c) { this.classes.add(c); },
+        remove(c) { this.classes.delete(c); },
+        contains(c) { return this.classes.has(c); }
+      }
+    },
+    video: {
+      src: "blob:http://localhost/test",
+      paused: false,
+      pause() { this.paused = true; },
+      removeAttribute(attr) { if (attr === "src") this.src = ""; },
+      load() {},
+      classList: {
+        classes: new Set(),
+        add(c) { this.classes.add(c); },
+        remove(c) { this.classes.delete(c); },
+        contains(c) { return this.classes.has(c); }
+      }
+    }
+  };
+
+  function stopUiTimer() {
+    state.ytPollTimer = null;
+  }
+
+  function teardownCurrentMedia(options = {}) {
+    stopUiTimer();
+
+    if (state.ytPlayer) {
+      try { state.ytPlayer.pauseVideo(); } catch (e) {}
+      try { state.ytPlayer.stopVideo(); } catch (e) {}
+      try {
+        if (typeof state.ytPlayer.destroy === "function") {
+          state.ytPlayer.destroy();
+        }
+      } catch (e) {}
+      state.ytPlayer = null;
+    }
+    if (els.youtubeContainer) {
+      els.youtubeContainer.innerHTML = "";
+      els.youtubeContainer.classList.add("is-hidden");
+    }
+
+    if (els.video) {
+      try { els.video.pause(); } catch (e) {}
+      els.video.removeAttribute("src");
+      try { els.video.load(); } catch (e) {}
+      els.video.classList.add("is-hidden");
+    }
+    if (state.objectUrl) {
+      state.objectUrl = null;
+    }
+    state.file = null;
+
+    if (options.resetState) {
+      state.loaded = false;
+      state.sourceType = null;
+      state.sourceId = null;
+      state.sourceLabel = null;
+      state.projectKey = null;
+      state.fallbackProjectKey = null;
+      state.annotations = [];
+      state.pendingIn = null;
+      state.restoredPlayhead = 0;
+      state.lastPlaybackSaveAt = 0;
+      state.resumeRequested = false;
+    }
+  }
+
+  function savePlaybackPosition(force = false) {
+    if (!state.loaded || !state.projectKey || !state.sourceId) return;
+    saveLocal();
+  }
+
+  function saveLocal() {
+    if (!state.loaded || !state.projectKey || !state.sourceId) return;
+    mockStorage.setItem(state.projectKey, JSON.stringify({
+      sourceType: state.sourceType,
+      sourceId: state.sourceId,
+      annotations: state.annotations,
+      playhead: 10
+    }));
+    writeLastSession();
+  }
+
+  function writeLastSession() {
+    if (!state.loaded || !state.projectKey || !state.sourceId) return;
+    mockStorage.setItem(LAST_SESSION_KEY, JSON.stringify({
+      sourceType: state.sourceType,
+      sourceId: state.sourceId,
+      projectKey: state.projectKey
+    }));
+  }
+
+  function forgetCurrentSession() {
+    teardownCurrentMedia({ resetState: true });
+    mockStorage.removeItem(LAST_SESSION_KEY);
+    mockStorage.removeItem(LEGACY_LAST_SESSION_KEY);
+  }
+
+  return {
+    state,
+    els,
+    store,
+    mockStorage,
+    teardownCurrentMedia,
+    forgetCurrentSession,
+    savePlaybackPosition,
+    saveLocal,
+    writeLastSession
+  };
+}
+
+// Subtest 1: Verify save and session write while active
+const env1 = createTeardownEnvironment();
+env1.saveLocal();
+assert.strictEqual(JSON.parse(env1.mockStorage.getItem(LAST_SESSION_KEY)).sourceId, "test_vid_123");
+assert(env1.mockStorage.getItem("video-annotator:v1:youtube:test_vid_123"), "Project annotations must be saved");
+
+// Subtest 2: Verify forgetCurrentSession tears down player, clears session, and prevents resurrection
+const ytPlayerRef = env1.state.ytPlayer;
+env1.forgetCurrentSession();
+
+assert.strictEqual(ytPlayerRef.destroyed, true, "YouTube player must be destroyed");
+assert.strictEqual(env1.state.ytPlayer, null, "state.ytPlayer must be null");
+assert.strictEqual(env1.els.youtubeContainer.innerHTML, "", "youtubeContainer innerHTML must be cleared");
+assert(env1.els.youtubeContainer.classList.contains("is-hidden"), "youtubeContainer must be hidden");
+assert.strictEqual(env1.mockStorage.getItem(LAST_SESSION_KEY), null, "LAST_SESSION_KEY must be removed");
+assert.strictEqual(env1.state.loaded, false, "state.loaded must be false");
+assert.strictEqual(env1.state.projectKey, null, "state.projectKey must be null");
+assert.strictEqual(env1.state.sourceId, null, "state.sourceId must be null");
+
+// Verify that subsequent save calls (e.g. visibilitychange / beforeunload / delayed timer) DO NOT resurrect session
+env1.savePlaybackPosition(true);
+assert.strictEqual(env1.mockStorage.getItem(LAST_SESSION_KEY), null, "savePlaybackPosition must not resurrect session after forget");
+env1.saveLocal();
+assert.strictEqual(env1.mockStorage.getItem(LAST_SESSION_KEY), null, "saveLocal must not resurrect session after forget");
+env1.writeLastSession();
+assert.strictEqual(env1.mockStorage.getItem(LAST_SESSION_KEY), null, "writeLastSession must not resurrect session after forget");
+
+// Verify project annotations remain saved (prudent semantic)
+assert(env1.mockStorage.getItem("video-annotator:v1:youtube:test_vid_123"), "Project annotations must stay saved in storage for future reuse");
+
+// Subtest 3: Verify idempotence of teardown
+assert.doesNotThrow(() => {
+  env1.teardownCurrentMedia();
+  env1.teardownCurrentMedia({ resetState: true });
+  env1.teardownCurrentMedia({ resetState: false });
+}, "teardownCurrentMedia must be idempotent and never throw");
+
+// Subtest 4: Verify local video teardown
+const env2 = createTeardownEnvironment();
+env2.state.sourceType = "local";
+env2.state.objectUrl = "blob:http://localhost/test";
+env2.state.file = { name: "test.mp4" };
+env2.state.ytPlayer = null;
+env2.teardownCurrentMedia({ resetState: true });
+
+assert.strictEqual(env2.els.video.paused, true, "Local video must be paused");
+assert.strictEqual(env2.els.video.src, "", "Local video src must be removed");
+assert(env2.els.video.classList.contains("is-hidden"), "Local video must be hidden");
+assert.strictEqual(env2.state.objectUrl, null, "state.objectUrl must be cleared");
+
+console.log("   ✓ Media teardown & forget session tests passed!");
+
 console.log("\n=== ALL TESTS PASSED SUCCESSFULLY! ===");
