@@ -1,4 +1,6 @@
-# FilmAnnotator v1.1
+# Note storiche di rilascio v1.1 (FilmAnnotator v1.1)
+
+> **Nota storica:** Questo documento conserva le note di rilascio originarie della versione v1.1, stabilita al commit baseline `2e3617c` con la denominazione originaria *FilmAnnotator v1.1*, successivamente ridenominata **video-annotator**.
 
 Applicazione web locale per annotazioni temporali su film.
 

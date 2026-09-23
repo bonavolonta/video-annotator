@@ -1,9 +1,10 @@
-# FilmAnnotator
+# video-annotator
 
-**FilmAnnotator** è un'applicazione web locale per l'annotazione temporale di video e l'analisi filmica.
+**video-annotator** è un'applicazione web locale per l'annotazione temporale di video e l'analisi filmica.
 
-* **Versione baseline:** `v1.1`
-* **File applicazione:** [`FilmAnnotator-v1.1/FilmAnnotator.html`](FilmAnnotator-v1.1/FilmAnnotator.html)
+* **Versione baseline:** `v1.1` (originariamente costituita come FilmAnnotator v1.1 al commit `2e3617c`)
+* **File applicazione principale:** [`index.html`](index.html) (strutturato e pronto per la pubblicazione su GitHub Pages)
+* **Repository GitHub:** [https://github.com/bonavolonta/video-annotator](https://github.com/bonavolonta/video-annotator)
 
 ---
 
@@ -22,7 +23,7 @@
 
 ## Utilizzo
 
-1. Apri il file [`FilmAnnotator-v1.1/FilmAnnotator.html`](FilmAnnotator-v1.1/FilmAnnotator.html) in un browser moderno (Chrome, Edge, Firefox, Safari).
+1. Apri il file [`index.html`](index.html) in un browser moderno (Chrome, Edge, Firefox, Safari).
 2. Trascina un file video nell'area di rilascio oppure clicca su **"Seleziona film"**.
 3. Durante la riproduzione:
    * Premi `M` per inserire un marker sul frame corrente;
@@ -43,61 +44,48 @@ Funzionalità previste per le versioni successive:
 
 ---
 
-## Strumenti di sviluppo: Alibaba OpenCodeReview (`ocr`)
+## Code Review: Alibaba OpenCodeReview in Delegation Mode
 
-Il progetto include localmente `@alibaba-group/open-code-review` come dipendenza di sviluppo (`devDependencies`).
+Il progetto integra `@alibaba-group/open-code-review` come dipendenza locale di sviluppo.
+
+Per evitare la necessità di configurare API key esterne dedicate a OCR, il progetto adotta la **Delegation Mode**:
+* **OpenCodeReview** determina l'ambito dei file modificati e fornisce le regole di analisi;
+* **Antigravity** (l'assistente AI di sviluppo) esegue materialmente la revisione del codice applicando tali regole con il proprio modello;
+* Ogni file contrassegnato da OCR come `reviewable` viene esaminato accuratamente prima del commit.
+
+### Procedura di Revisione Pre-Commit
+
+Prima di ogni commit funzionale, il workflow operativo prevede:
+
+1. **Determinazione dello scope**:
+   ```bash
+   npx ocr delegate preview --format json
+   ```
+   oppure anteprima testuale:
+   ```bash
+   npm run review:preview
+   ```
+2. **Ispezione delle regole di analisi**:
+   ```bash
+   npx ocr delegate rule <file>
+   ```
+3. **Analisi del diff e del codice**: lettura attenta delle modifiche introdotte rispetto alle regole fornite (Correttezza, Sicurezza, Performance, Manutenibilità, Testabilità).
+4. **Classificazione dei rilievi**:
+   * *Errore concreto*
+   * *Problema di sicurezza*
+   * *Problema di compatibilità*
+   * *Miglioramento consigliato*
+   * *Falso positivo / non pertinente*
+5. **Risoluzione mirata**: correzione esclusiva dei problemi fondati, preservando l'integrità funzionale.
+6. **Verifica finale**: ripetizione della preview e test applicativo.
 
 ### Script npm disponibili
 
-* **Anteprima dei file da revisionare (senza consumo di token):**
-  ```bash
-  npm run review:preview
-  ```
-* **Revisione con OpenCodeReview (modalità agente):**
-  ```bash
-  npm run review
-  ```
-* **Scansione completa del codice:**
-  ```bash
-  npm run review:scan
-  ```
+* `npm run review:preview`: Anteprima sintetica dei file modificati e di quelli esclusi dalle regole OCR.
+* `npm run review:delegate`: Output in formato JSON della spec di revisione in modalità delega.
+* `npm run review:scan`: Scansione completa dei file della repository.
 
-### 1. Configurazione del Provider LLM
+### Documentazione Baseline e Note Storiche
 
-Per abilitare l'analisi con modello linguistico, è possibile impostare un provider e la relativa chiave API:
-
-```bash
-npm run ocr:config -- provider
-npm run ocr:config -- model
-```
-
-Oppure direttamente via CLI:
-
-* **Google Gemini:**
-  ```bash
-  npx ocr config set provider gemini
-  npx ocr config set model gemini-2.5-flash
-  npx ocr config set providers.gemini.api_key "LA_TUA_CHIAVE_API"
-  ```
-* **Anthropic:**
-  ```bash
-  npx ocr config set provider anthropic
-  npx ocr config set model claude-3-7-sonnet-20250219
-  npx ocr config set providers.anthropic.api_key "LA_TUA_CHIAVE_API"
-  ```
-* **OpenAI:**
-  ```bash
-  npx ocr config set provider openai
-  npx ocr config set model gpt-4o
-  npx ocr config set providers.openai.api_key "LA_TUA_CHIAVE_API"
-  ```
-
-### 2. Verifica della connettività
-
-```bash
-npx ocr llm test
-```
-
-### 3. Report di Code Review Baseline
-
-Il report diagnostico iniziale condotto con OpenCodeReview sulla v1.1 è consultabile in [`docs/CODE_REVIEW_BASELINE.md`](docs/CODE_REVIEW_BASELINE.md).
+* [Report Code Review Baseline v1.1](docs/CODE_REVIEW_BASELINE.md)
+* [Note di rilascio v1.1 originarie](docs/BASELINE_v1.1_NOTES.md)

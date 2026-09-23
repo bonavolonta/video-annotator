@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
-  <title>FilmAnnotator</title>
+  <title>video-annotator</title>
   <style>
 :root {
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -420,7 +420,7 @@ kbd {
   <main id="app" class="app-shell">
     <header class="topbar">
       <div class="brand">
-        <strong>FilmAnnotator</strong>
+        <strong>video-annotator</strong>
         <span>Annotazioni temporali per l'analisi filmica</span>
       </div>
       <div class="top-actions">
@@ -702,7 +702,8 @@ kbd {
     els.exportBtn.disabled = !enabled || state.annotations.length === 0;
   }
 
-  const LAST_SESSION_KEY = "film-annotator:last-session:v1";
+  const LAST_SESSION_KEY = "video-annotator:last-session:v1";
+  const LEGACY_LAST_SESSION_KEY = "film-annotator:last-session:v1";
 
   function fileMeta(file) {
     return { name: file.name, size: file.size, lastModified: file.lastModified };
@@ -714,7 +715,7 @@ kbd {
 
   function readLastSession() {
     try {
-      const raw = localStorage.getItem(LAST_SESSION_KEY);
+      const raw = localStorage.getItem(LAST_SESSION_KEY) || localStorage.getItem(LEGACY_LAST_SESSION_KEY);
       return raw ? JSON.parse(raw) : null;
     } catch (error) {
       return null;
@@ -756,6 +757,10 @@ kbd {
   }
 
   function projectStorageKey(file) {
+    return "video-annotator:v1:" + [file.name, file.size, file.lastModified].join(":");
+  }
+
+  function legacyProjectStorageKey(file) {
     return "film-annotator:v1:" + [file.name, file.size, file.lastModified].join(":");
   }
 
@@ -782,7 +787,10 @@ kbd {
     state.restoredPlayhead = 0;
     if (!state.projectKey) return;
     try {
-      const raw = localStorage.getItem(state.projectKey);
+      let raw = localStorage.getItem(state.projectKey);
+      if (!raw && state.fallbackProjectKey) {
+        raw = localStorage.getItem(state.fallbackProjectKey);
+      }
       if (!raw) return;
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed.annotations)) {
@@ -843,6 +851,7 @@ kbd {
     closeDrawer();
     state.file = file;
     state.projectKey = projectStorageKey(file);
+    state.fallbackProjectKey = legacyProjectStorageKey(file);
     state.objectUrl = URL.createObjectURL(file);
     state.loaded = false;
     state.pendingIn = null;
@@ -1200,7 +1209,10 @@ kbd {
     els.fileInput.click();
   });
   els.forgetResumeBtn.addEventListener("click", () => {
-    try { localStorage.removeItem(LAST_SESSION_KEY); } catch (error) {}
+    try {
+      localStorage.removeItem(LAST_SESSION_KEY);
+      localStorage.removeItem(LEGACY_LAST_SESSION_KEY);
+    } catch (error) {}
     updateResumeCard();
     showToast("Riferimento all'ultima sessione rimosso. Le annotazioni dei singoli film restano salvate.");
   });

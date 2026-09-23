@@ -5,6 +5,8 @@ Strumento: Alibaba OpenCodeReview (`@alibaba-group/open-code-review` v1.12.9)
 File esaminato: `FilmAnnotator-v1.1/FilmAnnotator.html`  
 Tipo di review: **Diagnostica Baseline** (senza modifiche automatiche al codice v1.1)
 
+> **Nota storica sulla baseline:** Questo documento registra l'esame diagnostico condotto al commit di baseline `2e3617c`. In tale fase il progetto e l'applicazione erano denominati originariamente *FilmAnnotator v1.1* (file `FilmAnnotator-v1.1/FilmAnnotator.html`). La successiva ridenominazione a **video-annotator** e il passaggio a **index.html** costituiscono l'allineamento nominale e strutturale verso la futura v1.2, preservando intatto il comportamento verificato in questa sede.
+
 ---
 
 ## Sintesi della Review
