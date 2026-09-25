@@ -1,9 +1,9 @@
 // test/test-suite.js
-// Automated test suite for video-annotator v1.2
+// Automated test suite for video-annotator v1.3
 
 const assert = require("assert");
 
-console.log("=== Running video-annotator v1.2 Test Suite ===\n");
+console.log("=== Running video-annotator v1.3 Test Suite ===\n");
 
 // 1. YouTube URL Parser
 function parseYouTubeId(input) {
@@ -576,5 +576,274 @@ assert(env2.els.video.classList.contains("is-hidden"), "Local video must be hidd
 assert.strictEqual(env2.state.objectUrl, null, "state.objectUrl must be cleared");
 
 console.log("   ✓ Media teardown & forget session tests passed!");
+
+// 7. External Subtitle Engine
+console.log("\n7. Testing External Subtitle Engine...");
+
+function parseTimestamp(timeStr) {
+  if (!timeStr) return null;
+  const s = timeStr.trim().replace(",", ".");
+  const parts = s.split(":");
+  if (parts.length === 3) {
+    const hours = Number(parts[0]);
+    const minutes = Number(parts[1]);
+    const secs = Number(parts[2]);
+    if (Number.isFinite(hours) && Number.isFinite(minutes) && Number.isFinite(secs)) {
+      return hours * 3600 + minutes * 60 + secs;
+    }
+  } else if (parts.length === 2) {
+    const minutes = Number(parts[0]);
+    const secs = Number(parts[1]);
+    if (Number.isFinite(minutes) && Number.isFinite(secs)) {
+      return minutes * 60 + secs;
+    }
+  }
+  return null;
+}
+
+function parseSrt(text) {
+  if (typeof text !== "string") return [];
+  let cleaned = text.replace(/^\uFEFF/, "");
+  cleaned = cleaned.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  const cues = [];
+  const blocks = cleaned.split(/\n\s*\n/);
+  for (const block of blocks) {
+    const lines = block.split("\n").map(l => l.trimEnd()).filter(l => l.length > 0);
+    if (lines.length === 0) continue;
+    let timeLineIndex = -1;
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].includes("-->")) {
+        timeLineIndex = i;
+        break;
+      }
+    }
+    if (timeLineIndex === -1) continue;
+    const timeLine = lines[timeLineIndex];
+    const arrowIndex = timeLine.indexOf("-->");
+    const startStr = timeLine.slice(0, arrowIndex).trim();
+    const endStr = timeLine.slice(arrowIndex + 3).trim().split(/\s+/)[0];
+    const start = parseTimestamp(startStr);
+    const end = parseTimestamp(endStr);
+    if (start === null || end === null) continue;
+    const textLines = lines.slice(timeLineIndex + 1);
+    const cueText = textLines.join("\n").trim();
+    if (!cueText) continue;
+    cues.push({
+      start: Number(start.toFixed(3)),
+      end: Number(end.toFixed(3)),
+      text: cueText
+    });
+  }
+  cues.sort((a, b) => a.start - b.start || a.end - b.end);
+  return cues;
+}
+
+function parseVtt(text) {
+  if (typeof text !== "string") return [];
+  let cleaned = text.replace(/^\uFEFF/, "");
+  cleaned = cleaned.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  const cues = [];
+  const blocks = cleaned.split(/\n\s*\n/);
+  for (const block of blocks) {
+    const lines = block.split("\n").map(l => l.trimEnd()).filter(l => l.length > 0);
+    if (lines.length === 0) continue;
+    if (lines[0].startsWith("NOTE") || lines[0].startsWith("STYLE") || lines[0].startsWith("REGION")) {
+      continue;
+    }
+    let timeLineIndex = -1;
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].includes("-->")) {
+        timeLineIndex = i;
+        break;
+      }
+    }
+    if (timeLineIndex === -1) continue;
+    const timeLine = lines[timeLineIndex];
+    const arrowIndex = timeLine.indexOf("-->");
+    const startStr = timeLine.slice(0, arrowIndex).trim();
+    const afterArrow = timeLine.slice(arrowIndex + 3).trim();
+    const endStr = afterArrow.split(/\s+/)[0];
+    const start = parseTimestamp(startStr);
+    const end = parseTimestamp(endStr);
+    if (start === null || end === null) continue;
+    const textLines = lines.slice(timeLineIndex + 1);
+    const cueText = textLines.join("\n").trim();
+    if (!cueText) continue;
+    cues.push({
+      start: Number(start.toFixed(3)),
+      end: Number(end.toFixed(3)),
+      text: cueText
+    });
+  }
+  cues.sort((a, b) => a.start - b.start || a.end - b.end);
+  return cues;
+}
+
+function findActiveCueText(cues, targetTime) {
+  if (!Array.isArray(cues) || cues.length === 0 || !Number.isFinite(targetTime)) return "";
+  let low = 0;
+  let high = cues.length - 1;
+  let candidate = -1;
+  while (low <= high) {
+    const mid = (low + high) >> 1;
+    if (cues[mid].start <= targetTime) {
+      candidate = mid;
+      low = mid + 1;
+    } else {
+      high = mid - 1;
+    }
+  }
+  if (candidate === -1) return "";
+  const activeTexts = [];
+  let i = candidate;
+  while (i >= 0 && cues[i].start <= targetTime) {
+    if (targetTime <= cues[i].end) {
+      activeTexts.unshift(cues[i].text);
+    }
+    if (targetTime - cues[i].start > 60) break;
+    i--;
+  }
+  return activeTexts.join("\n");
+}
+
+function formatOffset(offset) {
+  const val = Number(offset) || 0;
+  if (Math.abs(val) < 0.001) return "+0,0 s";
+  const sign = val > 0 ? "+" : "−";
+  return sign + Math.abs(val).toFixed(1).replace(".", ",") + " s";
+}
+
+// 7.1 Parser SRT tests
+console.log("   7.1 Testing SRT Parser...");
+const srtTestSample = "\uFEFF1\r\n00:00:21,855 --> 00:00:23,065\r\nTesto singolo: È fantastico.\r\n\r\n2\r\n00:00:25,000 --> 00:00:29,500\r\nPrima riga: caratteri italiani àèéìòù\r\nSeconda riga\r\n\r\n";
+const parsedSrt = parseSrt(srtTestSample);
+assert.strictEqual(parsedSrt.length, 2, "SRT should parse 2 cues");
+assert.strictEqual(parsedSrt[0].start, 21.855, "SRT start timestamp with comma ms");
+assert.strictEqual(parsedSrt[0].end, 23.065, "SRT end timestamp with comma ms");
+assert.strictEqual(parsedSrt[0].text, "Testo singolo: È fantastico.", "SRT Unicode & BOM preservation");
+assert.strictEqual(parsedSrt[1].start, 25.0, "SRT second cue start");
+assert.strictEqual(parsedSrt[1].end, 29.5, "SRT second cue end");
+assert.strictEqual(parsedSrt[1].text, "Prima riga: caratteri italiani àèéìòù\nSeconda riga", "SRT multiline cue & CRLF handling");
+console.log("       ✓ SRT Parser tests passed!");
+
+// 7.2 Parser WebVTT tests
+console.log("   7.2 Testing WebVTT Parser...");
+const vttTestSample = "WEBVTT - Titolo traccia\n\nNOTE Nota iniziale di descrizione\nche continua\n\n00:21.855 --> 00:23.065 line:90% position:50% align:center\nTesto VTT con impostazioni\n\ncue-id-2\n01:00:25.000 --> 01:00:29.500\nPrima riga VTT\nSeconda riga VTT\n";
+const parsedVtt = parseVtt(vttTestSample);
+assert.strictEqual(parsedVtt.length, 2, "VTT should parse 2 cues, skipping NOTE block");
+assert.strictEqual(parsedVtt[0].start, 21.855, "VTT MM:SS.mmm format support");
+assert.strictEqual(parsedVtt[0].end, 23.065, "VTT end time support");
+assert.strictEqual(parsedVtt[0].text, "Testo VTT con impostazioni", "VTT text extracted without settings");
+assert.strictEqual(parsedVtt[1].start, 3625.0, "VTT HH:MM:SS.mmm format support");
+assert.strictEqual(parsedVtt[1].end, 3629.5, "VTT end time support");
+assert.strictEqual(parsedVtt[1].text, "Prima riga VTT\nSeconda riga VTT", "VTT multiline cue support");
+console.log("       ✓ WebVTT Parser tests passed!");
+
+// 7.3 Cue selection tests
+console.log("   7.3 Testing Cue selection...");
+assert.strictEqual(findActiveCueText(parsedSrt, 10.0), "", "Before first cue -> empty text");
+assert.strictEqual(findActiveCueText(parsedSrt, 21.855), "Testo singolo: È fantastico.", "At cue start -> cue text");
+assert.strictEqual(findActiveCueText(parsedSrt, 22.5), "Testo singolo: È fantastico.", "Inside cue -> cue text");
+assert.strictEqual(findActiveCueText(parsedSrt, 23.065), "Testo singolo: È fantastico.", "At cue end -> cue text");
+assert.strictEqual(findActiveCueText(parsedSrt, 24.0), "", "Between cues -> empty text");
+assert.strictEqual(findActiveCueText(parsedSrt, 27.0), "Prima riga: caratteri italiani àèéìòù\nSeconda riga", "Inside multiline cue -> multiline text");
+assert.strictEqual(findActiveCueText(parsedSrt, 35.0), "", "After last cue -> empty text");
+console.log("       ✓ Cue selection tests passed!");
+
+// 7.4 Offset tests
+console.log("   7.4 Testing Subtitle Offset...");
+// Cue is at [21.855, 23.065]
+// Offset = 0
+assert.strictEqual(findActiveCueText(parsedSrt, 21.855 - 0), "Testo singolo: È fantastico.", "Offset 0 at cue start");
+// Offset = +0.5 s (shown 0.5s later): at video t=21.855, adjusted = 21.355 -> empty
+assert.strictEqual(findActiveCueText(parsedSrt, 21.855 - 0.5), "", "Offset +0.5s delays display (not shown at t=21.855)");
+assert.strictEqual(findActiveCueText(parsedSrt, 22.355 - 0.5), "Testo singolo: È fantastico.", "Offset +0.5s shows cue at t=22.355");
+// Offset = -0.5 s (shown 0.5s earlier): at video t=21.355, adjusted = 21.855 -> shown!
+assert.strictEqual(findActiveCueText(parsedSrt, 21.355 - (-0.5)), "Testo singolo: È fantastico.", "Offset -0.5s advances display (shown at t=21.355)");
+assert.strictEqual(findActiveCueText(parsedSrt, 23.065 - (-0.5)), "", "Offset -0.5s ends display earlier (empty at t=23.065)");
+
+// Formatting
+assert.strictEqual(formatOffset(0), "+0,0 s", "formatOffset 0");
+assert.strictEqual(formatOffset(0.5), "+0,5 s", "formatOffset +0.5");
+assert.strictEqual(formatOffset(-0.5), "−0,5 s", "formatOffset -0.5");
+assert.strictEqual(formatOffset(1.5), "+1,5 s", "formatOffset +1.5");
+assert.strictEqual(formatOffset(-2.0), "−2,0 s", "formatOffset -2.0");
+console.log("       ✓ Subtitle Offset tests passed!");
+
+// 7.5 Persistence and Quota handling
+console.log("   7.5 Testing Subtitle Persistence & Storage...");
+const subStorage = {};
+const subMockStorage = {
+  getItem: (k) => subStorage[k] || null,
+  setItem: (k, v) => { subStorage[k] = String(v); },
+  removeItem: (k) => { delete subStorage[k]; }
+};
+
+const subProjectKey = "video-annotator:v1:youtube:sub_vid_test";
+const subtitleData = {
+  filename: "crip_camp_sottotitoli_it.srt",
+  format: "srt",
+  cues: parsedSrt,
+  offset: 0.5,
+  enabled: true,
+  fontSize: "large"
+};
+
+subMockStorage.setItem(subProjectKey, JSON.stringify({
+  sourceType: "youtube",
+  sourceId: "sub_vid_test",
+  annotations: [{ id: "m1", type: "marker", in: 10, comment: "test" }],
+  subtitle: subtitleData
+}));
+
+const restoredProject = JSON.parse(subMockStorage.getItem(subProjectKey));
+assert(restoredProject.subtitle, "Subtitle object must be restored");
+assert.strictEqual(restoredProject.subtitle.filename, "crip_camp_sottotitoli_it.srt");
+assert.strictEqual(restoredProject.subtitle.format, "srt");
+assert.strictEqual(restoredProject.subtitle.cues.length, 2);
+assert.strictEqual(restoredProject.subtitle.offset, 0.5);
+assert.strictEqual(restoredProject.subtitle.enabled, true);
+assert.strictEqual(restoredProject.subtitle.fontSize, "large");
+
+// QuotaExceededError simulation
+let quotaThrown = false;
+let fallbackSaved = false;
+const quotaMockStorage = {
+  setItem: (k, v) => {
+    if (v.length > 500) {
+      const err = new Error("Quota exceeded");
+      err.name = "QuotaExceededError";
+      throw err;
+    }
+    fallbackSaved = true;
+  }
+};
+
+try {
+  quotaMockStorage.setItem("key", JSON.stringify({ cues: new Array(500).fill({ start: 1, end: 2, text: "long test content..." }) }));
+} catch (e) {
+  quotaThrown = true;
+  if (e.name === "QuotaExceededError") {
+    quotaMockStorage.setItem("key", JSON.stringify({ cues: [] }));
+  }
+}
+assert.strictEqual(quotaThrown, true, "QuotaExceededError caught");
+assert.strictEqual(fallbackSaved, true, "Fallback without cues saved without throwing");
+console.log("       ✓ Subtitle Persistence & Storage tests passed!");
+
+// 7.6 Security & XSS
+console.log("   7.6 Testing Subtitle Security / XSS Prevention...");
+const maliciousSrt = "1\n00:00:01,000 --> 00:00:03,000\n<script>alert(1)<" + "/script><img src=x onerror=alert(2)>\n";
+const parsedMalicious = parseSrt(maliciousSrt);
+assert.strictEqual(parsedMalicious.length, 1);
+assert.strictEqual(parsedMalicious[0].text, '<script>alert(1)</script><img src=x onerror=alert(2)>', "Markup preserved purely as raw text");
+
+// Simulation of textContent assignment
+const mockTextNode = { textContent: "" };
+mockTextNode.textContent = parsedMalicious[0].text;
+assert.strictEqual(mockTextNode.textContent, '<script>alert(1)</script><img src=x onerror=alert(2)>', "textContent assignment preserves literal text without execution");
+console.log("       ✓ Subtitle Security tests passed!");
+
+console.log("   ✓ External Subtitle Engine tests passed!");
 
 console.log("\n=== ALL TESTS PASSED SUCCESSFULLY! ===");

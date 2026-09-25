@@ -1,8 +1,8 @@
 {
   "name": "video-annotator",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "private": true,
-  "description": "video-annotator v1.2 - Applicazione web per annotazione temporale di video locali e YouTube",
+  "description": "video-annotator v1.3 - Applicazione web per annotazione temporale di video locali e YouTube con supporto sottotitoli esterni",
   "scripts": {
     "test": "node test/test-suite.js",
     "review": "ocr review --audience agent",
