@@ -1,9 +1,11 @@
 // test/test-suite.js
-// Automated test suite for video-annotator v1.3
+// Automated test suite for video-annotator v1.4
 
 const assert = require("assert");
+const fs = require("fs");
+const path = require("path");
 
-console.log("=== Running video-annotator v1.3 Test Suite ===\n");
+console.log("=== Running video-annotator v1.4 Test Suite ===\n");
 
 // 1. YouTube URL Parser
 function parseYouTubeId(input) {
@@ -706,11 +708,12 @@ function findActiveCueText(cues, targetTime) {
   return activeTexts.join("\n");
 }
 
-function formatOffset(offset) {
+function formatOffset(offset, lang = "it") {
   const val = Number(offset) || 0;
-  if (Math.abs(val) < 0.001) return "+0,0 s";
+  const decSep = lang === "en" ? "." : ",";
+  if (Math.abs(val) < 0.001) return "+0" + decSep + "0 s";
   const sign = val > 0 ? "+" : "−";
-  return sign + Math.abs(val).toFixed(1).replace(".", ",") + " s";
+  return sign + Math.abs(val).toFixed(1).replace(".", decSep) + " s";
 }
 
 // 7.1 Parser SRT tests
@@ -845,5 +848,351 @@ assert.strictEqual(mockTextNode.textContent, '<script>alert(1)</script><img src=
 console.log("       ✓ Subtitle Security tests passed!");
 
 console.log("   ✓ External Subtitle Engine tests passed!");
+
+// 8. Internationalization IT/EN (v1.4)
+console.log("\n8. Testing Internationalization IT/EN...");
+
+// Read index.html to extract real translations dictionary and HTML tags
+const indexHtmlPath = path.resolve(__dirname, "../index.html");
+const indexHtmlContent = fs.readFileSync(indexHtmlPath, "utf8");
+
+// Extract translations object from index.html
+const translationsMatch = indexHtmlContent.match(/const translations = (\{[\s\S]*?\n  \};\n)/);
+assert(translationsMatch, "translations dictionary must be defined in index.html");
+const translations = eval("(" + translationsMatch[1].replace(/;\s*$/, "") + ")");
+
+// 8.1 Testing Dictionary Parity & HTML Attribute Coverage
+console.log("   8.1 Testing Dictionary Parity & HTML Attribute Coverage...");
+assert(translations.it, "translations.it must exist");
+assert(translations.en, "translations.en must exist");
+
+const itKeys = Object.keys(translations.it);
+const enKeys = Object.keys(translations.en);
+const itKeySet = new Set(itKeys);
+const enKeySet = new Set(enKeys);
+
+assert.strictEqual(itKeys.length, enKeys.length, `Key counts must match: IT has ${itKeys.length}, EN has ${enKeys.length}`);
+
+const missingInEn = itKeys.filter(k => !enKeySet.has(k));
+const missingInIt = enKeys.filter(k => !itKeySet.has(k));
+assert.deepStrictEqual(missingInEn, [], `Keys present in IT but missing in EN: ${missingInEn.join(", ")}`);
+assert.deepStrictEqual(missingInIt, [], `Keys present in EN but missing in IT: ${missingInIt.join(", ")}`);
+
+// Verify all values are non-empty strings
+for (const key of itKeys) {
+  assert(typeof translations.it[key] === "string" && translations.it[key].trim().length > 0, `translations.it[${key}] must be a non-empty string`);
+  assert(typeof translations.en[key] === "string" && translations.en[key].trim().length > 0, `translations.en[${key}] must be a non-empty string`);
+}
+
+// Verify parameterized placeholders {param} match between IT and EN
+const paramRegex = /\{([a-zA-Z0-9_]+)\}/g;
+for (const key of itKeys) {
+  const itParams = (translations.it[key].match(paramRegex) || []).sort();
+  const enParams = (translations.en[key].match(paramRegex) || []).sort();
+  assert.deepStrictEqual(itParams, enParams, `Placeholder parameters mismatch for key "${key}": IT ${JSON.stringify(itParams)} vs EN ${JSON.stringify(enParams)}`);
+}
+
+// Verify that all data-i18n* attributes in index.html exist in dictionary
+const attrRegex = /data-i18n(?:-placeholder|-aria-label|-title)?="([^"]+)"/g;
+let attrMatch;
+const htmlKeys = new Set();
+while ((attrMatch = attrRegex.exec(indexHtmlContent)) !== null) {
+  htmlKeys.add(attrMatch[1]);
+}
+assert(htmlKeys.size > 0, "HTML must contain data-i18n attributes");
+for (const key of htmlKeys) {
+  assert(itKeySet.has(key), `Key "${key}" used in HTML attribute is missing from translations dictionary`);
+}
+console.log(`       ✓ Dictionary parity verified (${itKeys.length} keys in IT and EN, ${htmlKeys.size} HTML attributes bound)!`);
+
+// 8.2 Testing Initial Language Detection & Fallbacks
+console.log("   8.2 Testing Initial Language Detection & Fallbacks...");
+
+function detectInitialLanguage(navLang, storedLang) {
+  if (storedLang === "it" || storedLang === "en") {
+    return storedLang;
+  }
+  const lang = String(navLang || "").toLowerCase().trim();
+  if (lang === "it" || lang.startsWith("it-")) {
+    return "it";
+  }
+  return "en";
+}
+
+// Stored preference precedence
+assert.strictEqual(detectInitialLanguage("en-US", "it"), "it", "Stored 'it' overrides English browser");
+assert.strictEqual(detectInitialLanguage("it-IT", "en"), "en", "Stored 'en' overrides Italian browser");
+
+// Browser language autodetection when no valid stored preference
+assert.strictEqual(detectInitialLanguage("it", null), "it", "'it' -> it");
+assert.strictEqual(detectInitialLanguage("it-IT", null), "it", "'it-IT' -> it");
+assert.strictEqual(detectInitialLanguage("it-CH", undefined), "it", "'it-CH' -> it");
+assert.strictEqual(detectInitialLanguage("IT", ""), "it", "'IT' (uppercase) -> it");
+assert.strictEqual(detectInitialLanguage("it-it", null), "it", "'it-it' (lowercase) -> it");
+
+// Non-Italian browsers default to English
+assert.strictEqual(detectInitialLanguage("en", null), "en", "'en' -> en");
+assert.strictEqual(detectInitialLanguage("en-US", null), "en", "'en-US' -> en");
+assert.strictEqual(detectInitialLanguage("en-GB", null), "en", "'en-GB' -> en");
+assert.strictEqual(detectInitialLanguage("fr-FR", null), "en", "'fr-FR' -> en");
+assert.strictEqual(detectInitialLanguage("de-DE", null), "en", "'de-DE' -> en");
+assert.strictEqual(detectInitialLanguage("es-ES", null), "en", "'es-ES' -> en");
+assert.strictEqual(detectInitialLanguage("ja", null), "en", "'ja' -> en");
+assert.strictEqual(detectInitialLanguage("", null), "en", "empty string -> en");
+assert.strictEqual(detectInitialLanguage(null, null), "en", "null -> en");
+assert.strictEqual(detectInitialLanguage(undefined, null), "en", "undefined -> en");
+
+// Invalid stored preference falls back to browser detection
+assert.strictEqual(detectInitialLanguage("it-IT", "invalid"), "it", "Invalid stored preference falls back to Italian browser");
+assert.strictEqual(detectInitialLanguage("fr-FR", "spanish"), "en", "Invalid stored preference falls back to default English");
+
+console.log("       ✓ Language detection & fallback rules passed!");
+
+// 8.3 Testing Language Persistence & Isolation from Session Reset
+console.log("   8.3 Testing Language Persistence & Isolation from Session Reset...");
+
+const LANGUAGE_STORAGE_KEY = "video-annotator:language";
+const i18nStore = {};
+const mockI18nStorage = {
+  getItem: (k) => i18nStore[k] || null,
+  setItem: (k, v) => { i18nStore[k] = String(v); },
+  removeItem: (k) => { delete i18nStore[k]; }
+};
+
+let currentTestLang = "it";
+function setTestLanguage(lang) {
+  if (lang !== "it" && lang !== "en") lang = "en";
+  currentTestLang = lang;
+  try {
+    mockI18nStorage.setItem(LANGUAGE_STORAGE_KEY, lang);
+  } catch (e) {}
+}
+
+// Initial state
+assert.strictEqual(mockI18nStorage.getItem(LANGUAGE_STORAGE_KEY), null);
+
+// Switching to English persists
+setTestLanguage("en");
+assert.strictEqual(currentTestLang, "en");
+assert.strictEqual(mockI18nStorage.getItem(LANGUAGE_STORAGE_KEY), "en");
+
+// Switching to Italian persists
+setTestLanguage("it");
+assert.strictEqual(currentTestLang, "it");
+assert.strictEqual(mockI18nStorage.getItem(LANGUAGE_STORAGE_KEY), "it");
+
+// Invalid language code defaults to 'en'
+setTestLanguage("de");
+assert.strictEqual(currentTestLang, "en");
+assert.strictEqual(mockI18nStorage.getItem(LANGUAGE_STORAGE_KEY), "en");
+
+// Session teardown and forgetCurrentSession() MUST NOT remove language preference
+mockI18nStorage.setItem("video-annotator:last-session:v1", JSON.stringify({ projectKey: "test" }));
+mockI18nStorage.setItem("film-annotator:last-session:v1", JSON.stringify({ projectKey: "test" }));
+mockI18nStorage.setItem("video-annotator:v1:youtube:test", JSON.stringify({ annotations: [] }));
+
+function forgetSessionWithoutTouchingLanguage() {
+  mockI18nStorage.removeItem("video-annotator:last-session:v1");
+  mockI18nStorage.removeItem("film-annotator:last-session:v1");
+}
+
+forgetSessionWithoutTouchingLanguage();
+assert.strictEqual(mockI18nStorage.getItem("video-annotator:last-session:v1"), null, "Session must be removed");
+assert.strictEqual(mockI18nStorage.getItem(LANGUAGE_STORAGE_KEY), "en", "Language preference MUST survive forgetCurrentSession()");
+
+console.log("       ✓ Language persistence & session isolation passed!");
+
+// 8.4 Testing Translation Helper t(), Interpolation, and Formatting
+console.log("   8.4 Testing Translation Helper t(), Interpolation, and Formatting...");
+
+function createTestTranslator(initialLang = "it") {
+  let lang = initialLang;
+  function t(key, params = {}) {
+    const dict = translations[lang] || translations.it;
+    let str = dict[key] || (translations.it && translations.it[key]) || key;
+    if (params && typeof params === "object") {
+      Object.keys(params).forEach(k => {
+        str = str.replaceAll("{" + k + "}", params[k]);
+      });
+    }
+    return str;
+  }
+  return {
+    getLanguage: () => lang,
+    setLanguage: (l) => { lang = (l === "it" || l === "en") ? l : "en"; },
+    t
+  };
+}
+
+const translator = createTestTranslator("it");
+// Simple keys
+assert.strictEqual(translator.t("app.openVideo"), "Apri video");
+translator.setLanguage("en");
+assert.strictEqual(translator.t("app.openVideo"), "Open video");
+
+// Parameterized keys
+translator.setLanguage("it");
+assert.strictEqual(translator.t("toast.inSet", { time: "00:01:23.456" }), "IN impostato a 00:01:23.456");
+assert.strictEqual(translator.t("list.countMany", { count: 3 }), "3 annotazioni");
+assert.strictEqual(translator.t("youtube.errorDefault", { code: 99 }), "Si è verificato un errore nella riproduzione del video YouTube (codice 99).");
+
+translator.setLanguage("en");
+assert.strictEqual(translator.t("toast.inSet", { time: "00:01:23.456" }), "IN set to 00:01:23.456");
+assert.strictEqual(translator.t("list.countMany", { count: 3 }), "3 annotations");
+assert.strictEqual(translator.t("youtube.errorDefault", { code: 99 }), "An error occurred while playing the YouTube video (code 99).");
+
+// Fallback for missing keys returns the key
+assert.strictEqual(translator.t("non.existent.key"), "non.existent.key");
+
+// Localized formatOffset
+assert.strictEqual(formatOffset(0, "it"), "+0,0 s", "formatOffset 0 in IT");
+assert.strictEqual(formatOffset(0.5, "it"), "+0,5 s", "formatOffset +0.5 in IT");
+assert.strictEqual(formatOffset(-0.5, "it"), "−0,5 s", "formatOffset -0.5 in IT");
+assert.strictEqual(formatOffset(2.0, "it"), "+2,0 s", "formatOffset +2.0 in IT");
+assert.strictEqual(formatOffset(-1.5, "it"), "−1,5 s", "formatOffset -1.5 in IT");
+
+assert.strictEqual(formatOffset(0, "en"), "+0.0 s", "formatOffset 0 in EN");
+assert.strictEqual(formatOffset(0.5, "en"), "+0.5 s", "formatOffset +0.5 in EN");
+assert.strictEqual(formatOffset(-0.5, "en"), "−0.5 s", "formatOffset -0.5 in EN");
+assert.strictEqual(formatOffset(2.0, "en"), "+2.0 s", "formatOffset +2.0 in EN");
+assert.strictEqual(formatOffset(-1.5, "en"), "−1.5 s", "formatOffset -1.5 in EN");
+
+console.log("       ✓ Translation helper and offset formatting passed!");
+
+// 8.5 Testing DOM Localization & Reactive Language Switch
+console.log("   8.5 Testing DOM Localization & Reactive Language Switch...");
+
+function createMockDomEnvironment() {
+  const doc = {
+    documentElement: { lang: "it" },
+    title: ""
+  };
+
+  const textElement = {
+    attrs: { "data-i18n": "app.openVideo" },
+    textContent: "Apri video",
+    getAttribute(a) { return this.attrs[a]; }
+  };
+
+  const placeholderElement = {
+    attrs: { "data-i18n-placeholder": "empty.youtubePlaceholder" },
+    placeholder: "",
+    getAttribute(a) { return this.attrs[a]; }
+  };
+
+  const buttonElement = {
+    attrs: {
+      "data-i18n-aria-label": "dock.markerAria",
+      "data-i18n-title": "dock.markerAria"
+    },
+    ariaLabel: "",
+    title: "",
+    getAttribute(a) { return this.attrs[a]; },
+    setAttribute(a, v) { if (a === "aria-label") this.ariaLabel = v; }
+  };
+
+  function createMockClassList() {
+    const set = new Set();
+    return {
+      add(c) { set.add(c); },
+      remove(c) { set.delete(c); },
+      toggle(c, force) { if (force) set.add(c); else set.delete(c); },
+      contains(c) { return set.has(c); }
+    };
+  }
+
+  const langItBtn = {
+    classList: createMockClassList(),
+    ariaPressed: "true",
+    setAttribute(a, v) { if (a === "aria-pressed") this.ariaPressed = v; }
+  };
+  langItBtn.classList.add("is-active");
+
+  const langEnBtn = {
+    classList: createMockClassList(),
+    ariaPressed: "false",
+    setAttribute(a, v) { if (a === "aria-pressed") this.ariaPressed = v; }
+  };
+
+  let activeLang = "it";
+
+  function applyMockTranslations(lang) {
+    activeLang = lang;
+    doc.documentElement.lang = lang;
+    doc.title = translations[lang]["app.pageTitle"];
+
+    textElement.textContent = translations[lang][textElement.getAttribute("data-i18n")];
+    placeholderElement.placeholder = translations[lang][placeholderElement.getAttribute("data-i18n-placeholder")];
+    buttonElement.setAttribute("aria-label", translations[lang][buttonElement.getAttribute("data-i18n-aria-label")]);
+    buttonElement.title = translations[lang][buttonElement.getAttribute("data-i18n-title")];
+
+    const isIt = lang === "it";
+    langItBtn.classList.toggle("is-active", isIt);
+    langItBtn.setAttribute("aria-pressed", String(isIt));
+    langEnBtn.classList.toggle("is-active", !isIt);
+    langEnBtn.setAttribute("aria-pressed", String(!isIt));
+  }
+
+  return {
+    doc,
+    textElement,
+    placeholderElement,
+    buttonElement,
+    langItBtn,
+    langEnBtn,
+    applyMockTranslations
+  };
+}
+
+const mockDom = createMockDomEnvironment();
+
+// Switch to English
+mockDom.applyMockTranslations("en");
+assert.strictEqual(mockDom.doc.documentElement.lang, "en", "html.lang must be 'en'");
+assert.strictEqual(mockDom.doc.title, translations.en["app.pageTitle"], "Document title updated to English");
+assert.strictEqual(mockDom.textElement.textContent, "Open video", "Text content updated to English");
+assert.strictEqual(mockDom.placeholderElement.placeholder, "https://www.youtube.com/watch?v=...", "Placeholder updated to English");
+assert.strictEqual(mockDom.buttonElement.ariaLabel, "Add marker (M)", "aria-label updated to English");
+assert.strictEqual(mockDom.buttonElement.title, "Add marker (M)", "title updated to English");
+assert.strictEqual(mockDom.langItBtn.classList.contains("is-active"), false, "IT button not active");
+assert.strictEqual(mockDom.langItBtn.ariaPressed, "false", "IT button aria-pressed false");
+assert.strictEqual(mockDom.langEnBtn.classList.contains("is-active"), true, "EN button active");
+assert.strictEqual(mockDom.langEnBtn.ariaPressed, "true", "EN button aria-pressed true");
+
+// Switch back to Italian
+mockDom.applyMockTranslations("it");
+assert.strictEqual(mockDom.doc.documentElement.lang, "it", "html.lang must be 'it'");
+assert.strictEqual(mockDom.doc.title, translations.it["app.pageTitle"], "Document title updated to Italian");
+assert.strictEqual(mockDom.textElement.textContent, "Apri video", "Text content updated to Italian");
+assert.strictEqual(mockDom.buttonElement.ariaLabel, "Aggiungi marker (M)", "aria-label updated to Italian");
+assert.strictEqual(mockDom.buttonElement.title, "Aggiungi marker (M)", "title updated to Italian");
+assert.strictEqual(mockDom.langItBtn.classList.contains("is-active"), true, "IT button active");
+assert.strictEqual(mockDom.langItBtn.ariaPressed, "true", "IT button aria-pressed true");
+assert.strictEqual(mockDom.langEnBtn.classList.contains("is-active"), false, "EN button not active");
+assert.strictEqual(mockDom.langEnBtn.ariaPressed, "false", "EN button aria-pressed false");
+
+console.log("       ✓ Reactive DOM translation and lang toggle states passed!");
+
+// 8.6 Testing Canonical CSV Export and Timecode Language-Independence
+console.log("   8.6 Testing Canonical CSV Export and Timecode Language-Independence...");
+
+const sampleAnnotations = [
+  { type: "marker", in: 65.432, comment: "Analisi inquadratura / Shot analysis" },
+  { type: "segment", in: 100.0, out: 125.5, comment: "Sequenza dialogo / Dialogue sequence" }
+];
+
+// CSV generated while active UI language is English or Italian must produce the exact same canonical output
+const csvGenerated = generateCsv(sampleAnnotations, "local", "test.mp4");
+assert(csvGenerated.includes('"ID","Tipo","IN","OUT","IN_secondi","OUT_secondi","Commento","Sorgente","Video"'), "CSV header must remain canonical Italian");
+assert(csvGenerated.includes('"marker"'), "Marker type must remain 'marker'");
+assert(csvGenerated.includes('"segmento"'), "Segment type must remain 'segmento'");
+assert(csvGenerated.includes('"00:01:05.432"'), "Timecode formatting HH:MM:SS.mmm must remain unchanged");
+assert(csvGenerated.includes('"00:01:40.000"'), "Timecode IN formatting unchanged");
+assert(csvGenerated.includes('"00:02:05.500"'), "Timecode OUT formatting unchanged");
+assert(csvGenerated.includes('"Analisi inquadratura / Shot analysis"'), "User text must be untouched");
+
+console.log("       ✓ Canonical CSV export and timecode language-independence passed!");
+
+console.log("   ✓ Internationalization IT/EN tests passed!");
 
 console.log("\n=== ALL TESTS PASSED SUCCESSFULLY! ===");

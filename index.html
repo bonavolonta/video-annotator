@@ -42,7 +42,45 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .brand { display: flex; align-items: baseline; gap: 12px; min-width: 0; }
 .brand strong { font-size: 1.05rem; letter-spacing: .01em; }
 .brand span { color: #9ea7b5; font-size: .88rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.top-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.top-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; align-items: center; }
+
+.lang-switch {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px;
+  background: #141922;
+  border: 1px solid #2a313d;
+  border-radius: 9px;
+  gap: 2px;
+}
+.lang-btn {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #9ea7b5;
+  font-weight: 650;
+  font-size: .82rem;
+  letter-spacing: .02em;
+  transition: all .15s ease;
+}
+.lang-btn:hover { color: #f5f7fa; }
+.lang-btn.is-active {
+  background: #252b36;
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(0,0,0,.25);
+}
+.lang-btn:focus-visible {
+  outline: 2px solid #5d7599;
+  outline-offset: 1px;
+}
+.lang-divider {
+  color: #353d4a;
+  font-size: .75rem;
+  user-select: none;
+  line-height: 1;
+}
 
 .button, .action-button, .mini-button, .icon-button, .tab-button, .text-button {
   border: 0;
@@ -661,6 +699,8 @@ kbd {
   .brand span { display: none; }
   .top-actions { gap: 6px; }
   .top-actions .button { min-height: 38px; padding: 0 10px; font-size: .8rem; }
+  .lang-switch { padding: 2px; }
+  .lang-btn { min-height: 28px; padding: 0 7px; font-size: .76rem; }
   .workspace { padding: 8px; }
   .video-stage { min-height: 48vh; border-radius: 10px; }
   .media-viewport video,
@@ -687,60 +727,65 @@ kbd {
     <header class="topbar">
       <div class="brand">
         <strong>video-annotator</strong>
-        <span>Annotazioni temporali per l'analisi filmica</span>
+        <span data-i18n="app.subtitle">Annotazioni temporali per l'analisi filmica</span>
       </div>
       <div class="top-actions">
-        <button id="openVideoBtn" class="button secondary" type="button">Apri video</button>
+        <div class="lang-switch" role="group" aria-label="Lingua / Language" data-i18n-aria-label="app.langSwitch">
+          <button id="langItBtn" class="lang-btn is-active" type="button" aria-pressed="true" aria-label="Italiano" data-i18n-aria-label="app.langIt">IT</button>
+          <span class="lang-divider" aria-hidden="true">|</span>
+          <button id="langEnBtn" class="lang-btn" type="button" aria-pressed="false" aria-label="English" data-i18n-aria-label="app.langEn">EN</button>
+        </div>
+        <button id="openVideoBtn" class="button secondary" type="button" data-i18n="app.openVideo">Apri video</button>
         <button id="showListBtn" class="button secondary" type="button" disabled>
-          Annotazioni <span id="annotationCount" class="count-badge">0</span>
+          <span data-i18n="app.annotations">Annotazioni</span> <span id="annotationCount" class="count-badge">0</span>
         </button>
-        <button id="exportBtn" class="button primary" type="button" disabled>Esporta CSV</button>
+        <button id="exportBtn" class="button primary" type="button" disabled data-i18n="app.exportCsv">Esporta CSV</button>
         <span id="saveIndicator" class="save-indicator" aria-live="polite">Salvataggio locale attivo</span>
       </div>
     </header>
 
     <input id="fileInput" type="file" accept="video/*,.mp4,.m4v,.webm,.ogv,.ogg,.mov" hidden>
 
-    <section id="emptyState" class="empty-state" tabindex="0" aria-label="Carica un video">
+    <section id="emptyState" class="empty-state" tabindex="0" aria-label="Carica un video" data-i18n-aria-label="empty.aria">
       <div class="empty-card">
-        <div class="source-switch" role="tablist" aria-label="Selezione sorgente">
-          <button id="sourceLocalTab" class="source-tab is-active" type="button" role="tab" aria-selected="true">File locale</button>
-          <button id="sourceYoutubeTab" class="source-tab" type="button" role="tab" aria-selected="false">YouTube</button>
+        <div class="source-switch" role="tablist" aria-label="Selezione sorgente" data-i18n-aria-label="empty.sourceSwitchAria">
+          <button id="sourceLocalTab" class="source-tab is-active" type="button" role="tab" aria-selected="true" data-i18n="empty.localTab">File locale</button>
+          <button id="sourceYoutubeTab" class="source-tab" type="button" role="tab" aria-selected="false" data-i18n="empty.youtubeTab">YouTube</button>
         </div>
 
         <div id="localSourcePanel" class="source-panel">
           <div class="empty-icon" aria-hidden="true">&#9654;</div>
-          <h1>Apri un film dal computer</h1>
-          <p>Il video resta sul dispositivo. Puoi scegliere un file oppure trascinarlo qui.</p>
-          <button id="emptyOpenBtn" class="button primary large" type="button">Seleziona film</button>
-          <p class="format-note">La riproduzione dipende dai formati e codec supportati dal browser.</p>
+          <h1 data-i18n="empty.localTitle">Apri un film dal computer</h1>
+          <p data-i18n="empty.localDesc">Il video resta sul dispositivo. Puoi scegliere un file oppure trascinarlo qui.</p>
+          <button id="emptyOpenBtn" class="button primary large" type="button" data-i18n="empty.selectFile">Seleziona film</button>
+          <p class="format-note" data-i18n="empty.localNote">La riproduzione dipende dai formati e codec supportati dal browser.</p>
         </div>
 
         <div id="youtubeSourcePanel" class="source-panel is-hidden">
           <div class="empty-icon youtube-icon" aria-hidden="true">&#9658;</div>
-          <h1>Apri un video da YouTube</h1>
-          <p>Inserisci il link di un video YouTube pubblico o non in elenco incorporabile.</p>
+          <h1 data-i18n="empty.youtubeTitle">Apri un video da YouTube</h1>
+          <p data-i18n="empty.youtubeDesc">Inserisci il link di un video YouTube pubblico o non in elenco incorporabile.</p>
           <div class="youtube-input-group">
-            <input id="youtubeUrlInput" type="url" placeholder="https://www.youtube.com/watch?v=..." autocomplete="off">
-            <button id="youtubeOpenBtn" class="button primary large" type="button">Apri video</button>
+            <input id="youtubeUrlInput" type="url" placeholder="https://www.youtube.com/watch?v=..." autocomplete="off" aria-label="URL video YouTube" data-i18n-placeholder="empty.youtubePlaceholder" data-i18n-aria-label="empty.youtubeAria">
+            <button id="youtubeOpenBtn" class="button primary large" type="button" data-i18n="empty.youtubeOpen">Apri video</button>
           </div>
           <div id="youtubeInputError" class="form-error" role="alert" aria-live="polite"></div>
-          <p class="format-note">La riproduzione avviene tramite YouTube IFrame Player API ufficiale. Il video non viene scaricato.</p>
+          <p class="format-note" data-i18n="empty.youtubeNote">La riproduzione avviene tramite YouTube IFrame Player API ufficiale. Il video non viene scaricato.</p>
         </div>
 
         <div id="resumeCard" class="resume-card is-hidden">
-          <strong>Ultimo lavoro salvato</strong>
+          <strong data-i18n="resume.title">Ultimo lavoro salvato</strong>
           <p id="resumeMeta" class="resume-meta"></p>
           <p id="resumeNotice">Le annotazioni e il punto di riproduzione sono memorizzati in questo browser. Per ragioni di sicurezza devi riselezionare il file video.</p>
           <div class="resume-actions">
             <button id="resumeBtn" class="button secondary" type="button">Riprendi ultimo film</button>
-            <button id="forgetResumeBtn" class="text-button danger" type="button">Dimentica questa sessione</button>
+            <button id="forgetResumeBtn" class="text-button danger" type="button" data-i18n="resume.forget">Dimentica questa sessione</button>
           </div>
         </div>
       </div>
     </section>
 
-    <section id="workspace" class="workspace is-hidden" aria-label="Area di visione e annotazione">
+    <section id="workspace" class="workspace is-hidden" aria-label="Area di visione e annotazione" data-i18n-aria-label="workspace.aria">
       <div id="videoStage" class="video-stage">
         <div id="mediaViewport" class="media-viewport">
           <video id="video" controls controlsList="nofullscreen" playsinline preload="metadata"></video>
@@ -754,16 +799,16 @@ kbd {
         </div>
 
         <div id="dropOverlay" class="drop-overlay" aria-hidden="true">
-          <div>Rilascia qui il nuovo film</div>
+          <div data-i18n="workspace.dropOverlay">Rilascia qui il nuovo film</div>
         </div>
 
-        <aside id="drawer" class="drawer" aria-hidden="true" aria-label="Pannello annotazioni">
+        <aside id="drawer" class="drawer" aria-hidden="true" aria-label="Pannello annotazioni" data-i18n-aria-label="drawer.aria">
           <div class="drawer-header">
-            <div class="drawer-tabs" role="tablist" aria-label="Pannello annotazioni">
-              <button id="editorTabBtn" class="tab-button is-active" type="button" role="tab" aria-selected="true">Commento</button>
-              <button id="listTabBtn" class="tab-button" type="button" role="tab" aria-selected="false">Annotazioni</button>
+            <div class="drawer-tabs" role="tablist" aria-label="Pannello annotazioni" data-i18n-aria-label="drawer.aria">
+              <button id="editorTabBtn" class="tab-button is-active" type="button" role="tab" aria-selected="true" data-i18n="drawer.tabComment">Commento</button>
+              <button id="listTabBtn" class="tab-button" type="button" role="tab" aria-selected="false" data-i18n="drawer.tabAnnotations">Annotazioni</button>
             </div>
-            <button id="closeDrawerBtn" class="icon-button" type="button" aria-label="Chiudi pannello">&times;</button>
+            <button id="closeDrawerBtn" class="icon-button" type="button" aria-label="Chiudi pannello" data-i18n-aria-label="drawer.closeAria">&times;</button>
           </div>
 
           <div id="editorPanel" class="drawer-panel" role="tabpanel">
@@ -771,45 +816,45 @@ kbd {
               <input id="annotationId" type="hidden">
 
               <fieldset class="type-switch">
-                <legend>Tipo di annotazione</legend>
+                <legend data-i18n="editor.typeLegend">Tipo di annotazione</legend>
                 <label>
                   <input type="radio" name="annotationType" value="marker" checked>
-                  <span>Marker</span>
+                  <span data-i18n="editor.typeMarker">Marker</span>
                 </label>
                 <label>
                   <input type="radio" name="annotationType" value="segment">
-                  <span>Segmento IN-OUT</span>
+                  <span data-i18n="editor.typeSegment">Segmento IN-OUT</span>
                 </label>
               </fieldset>
 
               <div class="time-grid">
                 <label>
-                  <span>IN</span>
+                  <span data-i18n="editor.in">IN</span>
                   <div class="time-input-row">
                     <input id="inTime" type="text" inputmode="decimal" autocomplete="off" aria-describedby="timeHelp">
-                    <button id="captureInBtn" class="mini-button" type="button">Ora</button>
+                    <button id="captureInBtn" class="mini-button" type="button" data-i18n="editor.now" data-i18n-aria-label="editor.captureInAria" aria-label="Cattura tempo corrente per IN">Ora</button>
                   </div>
                 </label>
                 <label id="outTimeField">
-                  <span>OUT</span>
+                  <span data-i18n="editor.out">OUT</span>
                   <div class="time-input-row">
                     <input id="outTime" type="text" inputmode="decimal" autocomplete="off" aria-describedby="timeHelp">
-                    <button id="captureOutBtn" class="mini-button" type="button">Ora</button>
+                    <button id="captureOutBtn" class="mini-button" type="button" data-i18n="editor.now" data-i18n-aria-label="editor.captureOutAria" aria-label="Cattura tempo corrente per OUT">Ora</button>
                   </div>
                 </label>
               </div>
-              <p id="timeHelp" class="field-help">Formato: HH:MM:SS.mmm</p>
+              <p id="timeHelp" class="field-help" data-i18n="editor.timeHelp">Formato: HH:MM:SS.mmm</p>
 
               <label class="comment-field">
-                <span>Commento</span>
-                <textarea id="commentText" rows="10" placeholder="Inserisci il commento sull'inquadratura, la scena o la sequenza..." required></textarea>
+                <span data-i18n="editor.commentLabel">Commento</span>
+                <textarea id="commentText" rows="10" placeholder="Inserisci il commento sull'inquadratura, la scena o la sequenza..." data-i18n-placeholder="editor.commentPlaceholder" required></textarea>
               </label>
 
               <div id="formError" class="form-error" role="alert" aria-live="polite"></div>
 
               <div class="form-actions">
-                <button id="cancelEditBtn" class="button secondary" type="button">Annulla</button>
-                <button class="button primary" type="submit">Salva annotazione</button>
+                <button id="cancelEditBtn" class="button secondary" type="button" data-i18n="editor.cancel">Annulla</button>
+                <button class="button primary" type="submit" data-i18n="editor.save">Salva annotazione</button>
               </div>
             </form>
           </div>
@@ -817,17 +862,17 @@ kbd {
           <div id="listPanel" class="drawer-panel is-hidden" role="tabpanel">
             <div class="list-toolbar">
               <span id="listSummary">0 annotazioni</span>
-              <button id="clearAllBtn" class="text-button danger" type="button">Cancella tutte</button>
+              <button id="clearAllBtn" class="text-button danger" type="button" data-i18n="list.clearAll">Cancella tutte</button>
             </div>
             <div id="annotationList" class="annotation-list"></div>
           </div>
         </aside>
       </div>
 
-      <div class="timeline-shell" aria-label="Timeline delle annotazioni">
+      <div class="timeline-shell" aria-label="Timeline delle annotazioni" data-i18n-aria-label="timeline.aria">
         <div id="annotationTimeline" class="annotation-timeline">
           <div id="timelineProgress" class="timeline-progress"></div>
-          <div id="pendingInMarker" class="pending-in-marker is-hidden" title="IN impostato"></div>
+          <div id="pendingInMarker" class="pending-in-marker is-hidden" title="IN impostato" data-i18n-title="timeline.pendingInTitle"></div>
         </div>
       </div>
 
@@ -837,35 +882,35 @@ kbd {
           <span id="videoTime">00:00:00.000 / 00:00:00.000</span>
         </div>
 
-        <div class="annotation-actions" aria-label="Comandi di annotazione">
-          <button id="markerBtn" class="action-button" type="button" disabled>
+        <div class="annotation-actions" aria-label="Comandi di annotazione" data-i18n-aria-label="dock.annotationActions">
+          <button id="markerBtn" class="action-button" type="button" disabled aria-label="Aggiungi marker (M)" data-i18n-aria-label="dock.markerAria">
             <span class="action-symbol">&#9679;</span>
-            <span>Marker</span>
+            <span data-i18n="dock.marker">Marker</span>
             <kbd>M</kbd>
           </button>
-          <button id="inBtn" class="action-button" type="button" disabled>
+          <button id="inBtn" class="action-button" type="button" disabled aria-label="Imposta punto IN (I)" data-i18n-aria-label="dock.setInAria">
             <span class="action-symbol">|&lt;</span>
-            <span>Imposta IN</span>
+            <span data-i18n="dock.setIn">Imposta IN</span>
             <kbd>I</kbd>
           </button>
-          <button id="outBtn" class="action-button" type="button" disabled>
+          <button id="outBtn" class="action-button" type="button" disabled aria-label="Imposta punto OUT (O)" data-i18n-aria-label="dock.setOutAria">
             <span class="action-symbol">&gt;|</span>
-            <span>Imposta OUT</span>
+            <span data-i18n="dock.setOut">Imposta OUT</span>
             <kbd>O</kbd>
           </button>
-          <button id="dockListBtn" class="action-button emphasized" type="button" disabled>
+          <button id="dockListBtn" class="action-button emphasized" type="button" disabled aria-label="Elenco annotazioni (A)" data-i18n-aria-label="dock.annotationsAria">
             <span class="action-symbol">&#9776;</span>
-            <span>Annotazioni</span>
+            <span data-i18n="dock.annotations">Annotazioni</span>
             <kbd>A</kbd>
           </button>
-          <button id="subtitleBtn" class="action-button" type="button" aria-haspopup="dialog" aria-expanded="false" aria-label="Sottotitoli" aria-pressed="false" disabled>
+          <button id="subtitleBtn" class="action-button" type="button" aria-haspopup="dialog" aria-expanded="false" aria-label="Sottotitoli (C)" data-i18n-aria-label="dock.subtitlesAria" aria-pressed="false" disabled>
             <span class="action-symbol">CC</span>
-            <span>Sottotitoli</span>
+            <span data-i18n="dock.subtitles">Sottotitoli</span>
             <kbd>C</kbd>
           </button>
-          <button id="fullscreenBtn" class="action-button" type="button" disabled>
+          <button id="fullscreenBtn" class="action-button" type="button" disabled aria-label="Schermo intero (F)" data-i18n-aria-label="dock.fullscreenAria">
             <span class="action-symbol">&#x26F6;</span>
-            <span>Schermo intero</span>
+            <span data-i18n="dock.fullscreen">Schermo intero</span>
             <kbd>F</kbd>
           </button>
         </div>
@@ -873,49 +918,49 @@ kbd {
         <div id="pendingStatus" class="pending-status" aria-live="polite"></div>
       </div>
 
-      <div id="subtitlePopover" class="subtitle-popover is-hidden" role="dialog" aria-modal="false" aria-label="Gestione sottotitoli">
+      <div id="subtitlePopover" class="subtitle-popover is-hidden" role="dialog" aria-modal="false" aria-label="Gestione sottotitoli" data-i18n-aria-label="subtitle.popoverAria">
         <div class="subtitle-popover-header">
-          <strong>Sottotitoli</strong>
-          <button id="closeSubtitlePopoverBtn" class="icon-button" type="button" aria-label="Chiudi finestra sottotitoli">&times;</button>
+          <strong data-i18n="subtitle.popoverTitle">Sottotitoli</strong>
+          <button id="closeSubtitlePopoverBtn" class="icon-button" type="button" aria-label="Chiudi finestra sottotitoli" data-i18n-aria-label="subtitle.closeAria">&times;</button>
         </div>
         <div class="subtitle-popover-body">
           <div class="subtitle-popover-row">
-            <button id="loadSubtitleBtn" class="button secondary" type="button" style="width: 100%;">Carica SRT / VTT</button>
+            <button id="loadSubtitleBtn" class="button secondary" type="button" style="width: 100%;" data-i18n="subtitle.loadBtn">Carica SRT / VTT</button>
             <input id="subtitleFileInput" type="file" accept=".srt,.vtt,text/vtt,application/x-subrip,text/plain" hidden>
           </div>
           <div class="subtitle-file-info" style="margin-top: 10px;">
-            <span class="subtitle-info-label">File:</span>
+            <span class="subtitle-info-label" data-i18n="subtitle.fileLabel">File:</span>
             <span id="subtitleFileName" class="subtitle-file-name">Nessun file caricato</span>
           </div>
           
           <div class="subtitle-popover-section" style="margin-top: 12px;">
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
-              <span class="subtitle-section-title">Stato visualizzazione</span>
+              <span class="subtitle-section-title" data-i18n="subtitle.displayStatus">Stato visualizzazione</span>
               <button id="subtitleToggleBtn" class="button secondary" type="button" style="min-height: 32px; padding: 0 12px; font-size: .84rem;" disabled>ON / OFF</button>
             </div>
           </div>
 
           <div class="subtitle-popover-section" style="margin-top: 12px;">
-            <span class="subtitle-section-title">Testo</span>
+            <span class="subtitle-section-title" data-i18n="subtitle.textSection">Testo</span>
             <div class="subtitle-button-group">
-              <button id="subFontSmallBtn" class="mini-button" type="button" aria-label="Testo piccolo" disabled>A−</button>
-              <button id="subFontMediumBtn" class="mini-button is-active" type="button" aria-label="Testo normale" disabled>A</button>
-              <button id="subFontLargeBtn" class="mini-button" type="button" aria-label="Testo grande" disabled>A+</button>
+              <button id="subFontSmallBtn" class="mini-button" type="button" aria-label="Testo piccolo" data-i18n-aria-label="subtitle.fontSmallAria" disabled>A−</button>
+              <button id="subFontMediumBtn" class="mini-button is-active" type="button" aria-label="Testo normale" data-i18n-aria-label="subtitle.fontMediumAria" disabled>A</button>
+              <button id="subFontLargeBtn" class="mini-button" type="button" aria-label="Testo grande" data-i18n-aria-label="subtitle.fontLargeAria" disabled>A+</button>
             </div>
           </div>
 
           <div class="subtitle-popover-section" style="margin-top: 12px;">
-            <span class="subtitle-section-title">Sincronizzazione</span>
+            <span class="subtitle-section-title" data-i18n="subtitle.syncSection">Sincronizzazione</span>
             <div class="subtitle-sync-row">
-              <button id="subSyncMinusBtn" class="mini-button" type="button" aria-label="Anticipa 0,5 secondi" disabled>−0,5 s</button>
+              <button id="subSyncMinusBtn" class="mini-button" type="button" aria-label="Anticipa 0,5 secondi" data-i18n-aria-label="subtitle.syncMinusAria" disabled>−0,5 s</button>
               <span id="subOffsetDisplay" class="subtitle-offset-display">+0,0 s</span>
-              <button id="subSyncPlusBtn" class="mini-button" type="button" aria-label="Posticipa 0,5 secondi" disabled>+0,5 s</button>
+              <button id="subSyncPlusBtn" class="mini-button" type="button" aria-label="Posticipa 0,5 secondi" data-i18n-aria-label="subtitle.syncPlusAria" disabled>+0,5 s</button>
             </div>
-            <button id="subSyncResetBtn" class="text-button" type="button" style="margin-top: 4px; align-self: center;" disabled>Reset sync</button>
+            <button id="subSyncResetBtn" class="text-button" type="button" style="margin-top: 4px; align-self: center;" data-i18n="subtitle.syncReset" disabled>Reset sync</button>
           </div>
 
           <div class="subtitle-popover-footer" style="margin-top: 12px;">
-            <button id="removeSubtitleBtn" class="text-button danger" type="button" disabled>Rimuovi sottotitoli</button>
+            <button id="removeSubtitleBtn" class="text-button danger" type="button" data-i18n="subtitle.removeBtn" disabled>Rimuovi sottotitoli</button>
           </div>
         </div>
       </div>
@@ -1002,8 +1047,430 @@ kbd {
     removeSubtitleBtn: document.getElementById("removeSubtitleBtn"),
     mediaViewport: document.getElementById("mediaViewport"),
     subtitleRail: document.getElementById("subtitleRail"),
-    subtitleText: document.getElementById("subtitleText")
+    subtitleText: document.getElementById("subtitleText"),
+    langItBtn: document.getElementById("langItBtn"),
+    langEnBtn: document.getElementById("langEnBtn")
   };
+
+  const translations = {
+    it: {
+      "app.title": "video-annotator",
+      "app.subtitle": "Annotazioni temporali per l'analisi filmica",
+      "app.pageTitle": "video-annotator — Annotazioni temporali e sottotitoli per l'analisi filmica",
+      "app.openVideo": "Apri video",
+      "app.annotations": "Annotazioni",
+      "app.exportCsv": "Esporta CSV",
+      "app.langSwitch": "Lingua / Language",
+      "app.langIt": "Italiano",
+      "app.langEn": "English",
+      "save.active": "Salvataggio locale attivo",
+      "save.saved": "Salvato localmente",
+      "save.quota": "Quota memoria superata",
+      "save.unavailable": "Salvataggio locale non disponibile",
+      "empty.aria": "Carica un video",
+      "empty.sourceSwitchAria": "Selezione sorgente",
+      "empty.localTab": "File locale",
+      "empty.youtubeTab": "YouTube",
+      "empty.localTitle": "Apri un film dal computer",
+      "empty.localDesc": "Il video resta sul dispositivo. Puoi scegliere un file oppure trascinarlo qui.",
+      "empty.selectFile": "Seleziona film",
+      "empty.localNote": "La riproduzione dipende dai formati e codec supportati dal browser.",
+      "empty.youtubeTitle": "Apri un video da YouTube",
+      "empty.youtubeDesc": "Inserisci il link di un video YouTube pubblico o non in elenco incorporabile.",
+      "empty.youtubePlaceholder": "https://www.youtube.com/watch?v=...",
+      "empty.youtubeAria": "URL video YouTube",
+      "empty.youtubeOpen": "Apri video",
+      "empty.youtubeNote": "La riproduzione avviene tramite YouTube IFrame Player API ufficiale. Il video non viene scaricato.",
+      "resume.title": "Ultimo lavoro salvato",
+      "resume.noticeLocal": "Le annotazioni e il punto di riproduzione sono memorizzati in questo browser. Per ragioni di sicurezza devi riselezionare il file video.",
+      "resume.noticeYoutube": "Le annotazioni e il punto di riproduzione sono memorizzati in questo browser.",
+      "resume.btnLocal": "Riprendi ultimo film",
+      "resume.btnYoutube": "Riprendi video YouTube",
+      "resume.forget": "Dimentica questa sessione",
+      "resume.position": "posizione",
+      "workspace.aria": "Area di visione e annotazione",
+      "workspace.dropOverlay": "Rilascia qui il nuovo film",
+      "drawer.aria": "Pannello annotazioni",
+      "drawer.closeAria": "Chiudi pannello",
+      "drawer.tabComment": "Commento",
+      "drawer.tabAnnotations": "Annotazioni",
+      "editor.typeLegend": "Tipo di annotazione",
+      "editor.typeMarker": "Marker",
+      "editor.typeSegment": "Segmento IN-OUT",
+      "editor.in": "IN",
+      "editor.out": "OUT",
+      "editor.now": "Ora",
+      "editor.captureInAria": "Cattura tempo corrente per IN",
+      "editor.captureOutAria": "Cattura tempo corrente per OUT",
+      "editor.timeHelp": "Formato: HH:MM:SS.mmm",
+      "editor.commentLabel": "Commento",
+      "editor.commentPlaceholder": "Inserisci il commento sull'inquadratura, la scena o la sequenza...",
+      "editor.cancel": "Annulla",
+      "editor.save": "Salva annotazione",
+      "list.countZero": "0 annotazioni",
+      "list.countOne": "1 annotazione",
+      "list.countMany": "{count} annotazioni",
+      "list.clearAll": "Cancella tutte",
+      "list.empty": "Nessuna annotazione salvata.<br>Usa Marker oppure IN-OUT durante la visione.",
+      "list.kindMarker": "Marker",
+      "list.kindSegment": "Segmento",
+      "list.seek": "Vai al punto",
+      "list.edit": "Modifica",
+      "list.delete": "Elimina",
+      "timeline.aria": "Timeline delle annotazioni",
+      "timeline.pendingInTitle": "IN impostato",
+      "timeline.markerAria": "Vai all'annotazione a {time}",
+      "dock.defaultVideoName": "Film",
+      "dock.localPrefix": "File locale · ",
+      "dock.annotationActions": "Comandi di annotazione",
+      "dock.marker": "Marker",
+      "dock.markerAria": "Aggiungi marker (M)",
+      "dock.setIn": "Imposta IN",
+      "dock.setInAria": "Imposta punto IN (I)",
+      "dock.setOut": "Imposta OUT",
+      "dock.setOutAria": "Imposta punto OUT (O)",
+      "dock.annotations": "Annotazioni",
+      "dock.annotationsAria": "Elenco annotazioni (A)",
+      "dock.subtitles": "Sottotitoli",
+      "dock.subtitlesAria": "Sottotitoli (C)",
+      "dock.fullscreen": "Schermo intero",
+      "dock.fullscreenAria": "Schermo intero (F)",
+      "dock.pendingStatus": "IN: {time} - premi OUT quando termina la sequenza",
+      "subtitle.popoverAria": "Gestione sottotitoli",
+      "subtitle.popoverTitle": "Sottotitoli",
+      "subtitle.closeAria": "Chiudi finestra sottotitoli",
+      "subtitle.loadBtn": "Carica SRT / VTT",
+      "subtitle.fileLabel": "File:",
+      "subtitle.noFile": "Nessun file caricato",
+      "subtitle.active": "Sottotitoli attivi",
+      "subtitle.displayStatus": "Stato visualizzazione",
+      "subtitle.textSection": "Testo",
+      "subtitle.fontSmallAria": "Testo piccolo",
+      "subtitle.fontMediumAria": "Testo normale",
+      "subtitle.fontLargeAria": "Testo grande",
+      "subtitle.syncSection": "Sincronizzazione",
+      "subtitle.syncMinusAria": "Anticipa 0,5 secondi",
+      "subtitle.syncPlusAria": "Posticipa 0,5 secondi",
+      "subtitle.syncReset": "Reset sync",
+      "subtitle.removeBtn": "Rimuovi sottotitoli",
+      "validation.inInvalid": "Inserisci un tempo IN valido.",
+      "validation.inExceedsDuration": "Il tempo IN supera la durata del film.",
+      "validation.outInvalid": "Inserisci un tempo OUT valido.",
+      "validation.outBeforeIn": "Il tempo OUT deve essere successivo al tempo IN.",
+      "validation.outExceedsDuration": "Il tempo OUT supera la durata del film.",
+      "validation.commentRequired": "Inserisci un commento.",
+      "toast.inSet": "IN impostato a {time}",
+      "toast.setInFirst": "Imposta prima il punto IN.",
+      "toast.outMustBeAfterIn": "Il punto OUT deve essere successivo al punto IN.",
+      "toast.annotationSaved": "Annotazione salvata.",
+      "toast.annotationUpdated": "Annotazione aggiornata.",
+      "toast.annotationDeleted": "Annotazione eliminata.",
+      "toast.annotationsCleared": "Annotazioni cancellate.",
+      "toast.confirmDelete": "Eliminare questa annotazione?",
+      "toast.confirmClearAll": "Cancellare tutte le annotazioni di questo video?",
+      "toast.sessionForgotten": "Sessione dimenticata. Il video non verrà ripristinato automaticamente; le annotazioni del video restano salvate localmente.",
+      "toast.quotaExceeded": "I sottotitoli sono attivi, ma non è stato possibile salvarli nel browser. Dovranno essere ricaricati dopo il refresh.",
+      "toast.resumeMismatch": "Questo non è il film dell'ultima sessione. Seleziona {name}.",
+      "toast.selectVideoFile": "Seleziona un file video.",
+      "toast.dropNoCompatible": "Nel trascinamento non e stato trovato un file video compatibile.",
+      "toast.csvExported": "CSV esportato.",
+      "toast.csvNoAnnotations": "Non ci sono annotazioni da esportare.",
+      "toast.fullscreenUnavailable": "Schermo intero non disponibile in questo browser.",
+      "toast.restored": "Ripristinati: {parts}.",
+      "toast.subtitlesLoaded": "Sottotitoli caricati: {count} battute.",
+      "toast.subtitlesRemoved": "Sottotitoli rimossi.",
+      "toast.subtitlesUnsupported": "Formato non supportato. Seleziona un file .srt o .vtt.",
+      "toast.subtitlesEmpty": "Nessun sottotitolo valido trovato nel file.",
+      "toast.subtitlesReadError": "Errore durante la lettura del file sottotitoli.",
+      "toast.subtitlesFileError": "Impossibile leggere il file selezionato.",
+      "youtube.apiLoadError": "Impossibile caricare le API di YouTube. Verifica la connessione.",
+      "youtube.urlRequired": "Inserisci l'URL di un video YouTube.",
+      "youtube.invalidUrl": "URL YouTube non valido o non supportato. Inserisci un link valido a un singolo video.",
+      "youtube.errorTitle": "Impossibile riprodurre il video YouTube",
+      "youtube.error2": "Parametro URL o identificativo video non valido.",
+      "youtube.error5": "Errore di riproduzione HTML5 nel player YouTube.",
+      "youtube.error100": "Video non trovato. Il video potrebbe essere stato rimosso o impostato come privato.",
+      "youtube.error101_150": "L'autore del video o YouTube non consentono la riproduzione tramite incorporamento.",
+      "youtube.error153": "Impossibile riprodurre questo video: restrizioni di origine o referer non identificabile. Verifica che l'applicazione sia servita tramite HTTP/HTTPS e che il video consenta l'incorporamento.",
+      "youtube.errorDefault": "Si è verificato un errore nella riproduzione del video YouTube (codice {code}).",
+      "videoError.title": "Il browser non riesce a riprodurre questo file",
+      "videoError.message": "Il contenitore o il codec del video non e supportato. Per la massima compatibilita usa MP4 con video H.264 e audio AAC, oppure WebM.",
+      "videoError.openAnother": "Apri un altro video"
+    },
+    en: {
+      "app.title": "video-annotator",
+      "app.subtitle": "Time-coded annotations for film analysis",
+      "app.pageTitle": "video-annotator — Time-coded annotations and subtitles for film analysis",
+      "app.openVideo": "Open video",
+      "app.annotations": "Annotations",
+      "app.exportCsv": "Export CSV",
+      "app.langSwitch": "Language / Lingua",
+      "app.langIt": "Italiano",
+      "app.langEn": "English",
+      "save.active": "Local autosave active",
+      "save.saved": "Saved locally",
+      "save.quota": "Storage quota exceeded",
+      "save.unavailable": "Local save unavailable",
+      "empty.aria": "Load a video",
+      "empty.sourceSwitchAria": "Source selection",
+      "empty.localTab": "Local file",
+      "empty.youtubeTab": "YouTube",
+      "empty.localTitle": "Open a video from computer",
+      "empty.localDesc": "The video stays on your device. You can choose a file or drag and drop it here.",
+      "empty.selectFile": "Select video file",
+      "empty.localNote": "Playback depends on formats and codecs supported by your browser.",
+      "empty.youtubeTitle": "Open a video from YouTube",
+      "empty.youtubeDesc": "Enter the link of a public or unlisted embeddable YouTube video.",
+      "empty.youtubePlaceholder": "https://www.youtube.com/watch?v=...",
+      "empty.youtubeAria": "YouTube video URL",
+      "empty.youtubeOpen": "Open video",
+      "empty.youtubeNote": "Playback uses the official YouTube IFrame Player API. The video is not downloaded.",
+      "resume.title": "Last saved work",
+      "resume.noticeLocal": "Annotations and playback position are stored in this browser. For security reasons you must reselect the video file.",
+      "resume.noticeYoutube": "Annotations and playback position are stored in this browser.",
+      "resume.btnLocal": "Resume last video",
+      "resume.btnYoutube": "Resume YouTube video",
+      "resume.forget": "Forget this session",
+      "resume.position": "position",
+      "workspace.aria": "Viewing and annotation area",
+      "workspace.dropOverlay": "Drop new video here",
+      "drawer.aria": "Annotations panel",
+      "drawer.closeAria": "Close panel",
+      "drawer.tabComment": "Comment",
+      "drawer.tabAnnotations": "Annotations",
+      "editor.typeLegend": "Annotation type",
+      "editor.typeMarker": "Marker",
+      "editor.typeSegment": "IN-OUT segment",
+      "editor.in": "IN",
+      "editor.out": "OUT",
+      "editor.now": "Now",
+      "editor.captureInAria": "Capture current time for IN",
+      "editor.captureOutAria": "Capture current time for OUT",
+      "editor.timeHelp": "Format: HH:MM:SS.mmm",
+      "editor.commentLabel": "Comment",
+      "editor.commentPlaceholder": "Enter comment on the shot, scene, or sequence...",
+      "editor.cancel": "Cancel",
+      "editor.save": "Save annotation",
+      "list.countZero": "0 annotations",
+      "list.countOne": "1 annotation",
+      "list.countMany": "{count} annotations",
+      "list.clearAll": "Clear all",
+      "list.empty": "No annotations saved.<br>Use Marker or IN-OUT during playback.",
+      "list.kindMarker": "Marker",
+      "list.kindSegment": "Segment",
+      "list.seek": "Go to point",
+      "list.edit": "Edit",
+      "list.delete": "Delete",
+      "timeline.aria": "Annotations timeline",
+      "timeline.pendingInTitle": "IN set",
+      "timeline.markerAria": "Go to annotation at {time}",
+      "dock.defaultVideoName": "Video",
+      "dock.localPrefix": "Local file · ",
+      "dock.annotationActions": "Annotation controls",
+      "dock.marker": "Marker",
+      "dock.markerAria": "Add marker (M)",
+      "dock.setIn": "Set IN",
+      "dock.setInAria": "Set IN point (I)",
+      "dock.setOut": "Set OUT",
+      "dock.setOutAria": "Set OUT point (O)",
+      "dock.annotations": "Annotations",
+      "dock.annotationsAria": "Annotations list (A)",
+      "dock.subtitles": "Subtitles",
+      "dock.subtitlesAria": "Subtitles (C)",
+      "dock.fullscreen": "Fullscreen",
+      "dock.fullscreenAria": "Fullscreen (F)",
+      "dock.pendingStatus": "IN: {time} - press OUT when sequence ends",
+      "subtitle.popoverAria": "Subtitle management",
+      "subtitle.popoverTitle": "Subtitles",
+      "subtitle.closeAria": "Close subtitles popover",
+      "subtitle.loadBtn": "Load SRT / VTT",
+      "subtitle.fileLabel": "File:",
+      "subtitle.noFile": "No file loaded",
+      "subtitle.active": "Active subtitles",
+      "subtitle.displayStatus": "Display status",
+      "subtitle.textSection": "Text",
+      "subtitle.fontSmallAria": "Small text",
+      "subtitle.fontMediumAria": "Normal text",
+      "subtitle.fontLargeAria": "Large text",
+      "subtitle.syncSection": "Synchronization",
+      "subtitle.syncMinusAria": "Advance 0.5 seconds",
+      "subtitle.syncPlusAria": "Delay 0.5 seconds",
+      "subtitle.syncReset": "Reset sync",
+      "subtitle.removeBtn": "Remove subtitles",
+      "validation.inInvalid": "Enter a valid IN time.",
+      "validation.inExceedsDuration": "IN time exceeds video duration.",
+      "validation.outInvalid": "Enter a valid OUT time.",
+      "validation.outBeforeIn": "OUT time must be after IN time.",
+      "validation.outExceedsDuration": "OUT time exceeds video duration.",
+      "validation.commentRequired": "Enter a comment.",
+      "toast.inSet": "IN set to {time}",
+      "toast.setInFirst": "Set the IN point first.",
+      "toast.outMustBeAfterIn": "OUT point must be after IN point.",
+      "toast.annotationSaved": "Annotation saved.",
+      "toast.annotationUpdated": "Annotation updated.",
+      "toast.annotationDeleted": "Annotation deleted.",
+      "toast.annotationsCleared": "Annotations cleared.",
+      "toast.confirmDelete": "Delete this annotation?",
+      "toast.confirmClearAll": "Delete all annotations for this video?",
+      "toast.sessionForgotten": "Session forgotten. The video will not be automatically restored; annotations remain saved locally.",
+      "toast.quotaExceeded": "Subtitles are active, but could not be saved to browser storage. They will need to be reloaded after refresh.",
+      "toast.resumeMismatch": "This is not the video from the last session. Please select {name}.",
+      "toast.selectVideoFile": "Please select a video file.",
+      "toast.dropNoCompatible": "No compatible video file found in drop.",
+      "toast.csvExported": "CSV exported.",
+      "toast.csvNoAnnotations": "There are no annotations to export.",
+      "toast.fullscreenUnavailable": "Fullscreen not available in this browser.",
+      "toast.restored": "Restored: {parts}.",
+      "toast.subtitlesLoaded": "Subtitles loaded: {count} cues.",
+      "toast.subtitlesRemoved": "Subtitles removed.",
+      "toast.subtitlesUnsupported": "Unsupported format. Select a .srt or .vtt file.",
+      "toast.subtitlesEmpty": "No valid subtitles found in file.",
+      "toast.subtitlesReadError": "Error reading subtitle file.",
+      "toast.subtitlesFileError": "Unable to read selected file.",
+      "youtube.apiLoadError": "Unable to load YouTube API. Check your connection.",
+      "youtube.urlRequired": "Enter a YouTube video URL.",
+      "youtube.invalidUrl": "Invalid or unsupported YouTube URL. Enter a valid link to a single video.",
+      "youtube.errorTitle": "Unable to play YouTube video",
+      "youtube.error2": "Invalid URL parameter or video ID.",
+      "youtube.error5": "HTML5 playback error in YouTube player.",
+      "youtube.error100": "Video not found. The video may have been removed or set to private.",
+      "youtube.error101_150": "The video author or YouTube does not allow embedded playback.",
+      "youtube.error153": "Unable to play this video: origin restrictions or unidentified referer. Verify the app is served via HTTP/HTTPS and the video allows embedding.",
+      "youtube.errorDefault": "An error occurred while playing the YouTube video (code {code}).",
+      "videoError.title": "The browser cannot play this file",
+      "videoError.message": "The video container or codec is not supported. For maximum compatibility use MP4 with H.264 video and AAC audio, or WebM.",
+      "videoError.openAnother": "Open another video"
+    }
+  };
+
+  const LANGUAGE_STORAGE_KEY = "video-annotator:language";
+
+  function detectInitialLanguage(navLang, storedLang) {
+    if (storedLang === "it" || storedLang === "en") {
+      return storedLang;
+    }
+    const lang = String(navLang || "").toLowerCase().trim();
+    if (lang === "it" || lang.startsWith("it-")) {
+      return "it";
+    }
+    return "en";
+  }
+
+  let storedPreference = null;
+  try {
+    storedPreference = localStorage.getItem(LANGUAGE_STORAGE_KEY);
+  } catch (e) {}
+
+  let currentLanguage = detectInitialLanguage(
+    typeof navigator !== "undefined" ? (navigator.language || (navigator.languages && navigator.languages[0])) : "it",
+    storedPreference
+  );
+
+  function t(key, params = {}) {
+    const dict = translations[currentLanguage] || translations.it;
+    let str = dict[key] || (translations.it && translations.it[key]) || key;
+    if (params && typeof params === "object") {
+      Object.keys(params).forEach(k => {
+        str = str.replaceAll("{" + k + "}", params[k]);
+      });
+    }
+    return str;
+  }
+
+  let currentSaveIndicatorKey = "save.active";
+  function setSavedIndicator(keyOrText) {
+    if (!els.saveIndicator) return;
+    if (translations.it[keyOrText] || translations.en[keyOrText]) {
+      currentSaveIndicatorKey = keyOrText;
+    } else if (keyOrText === "Salvataggio locale attivo" || keyOrText === "Local autosave active") {
+      currentSaveIndicatorKey = "save.active";
+    } else if (keyOrText === "Salvato localmente" || keyOrText === "Saved locally") {
+      currentSaveIndicatorKey = "save.saved";
+    } else if (keyOrText === "Quota memoria superata" || keyOrText === "Storage quota exceeded") {
+      currentSaveIndicatorKey = "save.quota";
+    } else if (keyOrText === "Salvataggio locale non disponibile" || keyOrText === "Local save unavailable") {
+      currentSaveIndicatorKey = "save.unavailable";
+    } else if (!keyOrText) {
+      currentSaveIndicatorKey = "save.saved";
+    }
+    els.saveIndicator.textContent = t(currentSaveIndicatorKey);
+  }
+
+  function setLanguage(lang) {
+    if (lang !== "it" && lang !== "en") lang = "en";
+    currentLanguage = lang;
+    try {
+      localStorage.setItem(LANGUAGE_STORAGE_KEY, lang);
+    } catch (e) {}
+    applyTranslations();
+  }
+
+  function applyTranslations() {
+    if (typeof document === "undefined") return;
+    document.documentElement.lang = currentLanguage;
+    document.title = t("app.pageTitle");
+
+    document.querySelectorAll("[data-i18n]").forEach(el => {
+      const key = el.getAttribute("data-i18n");
+      if (key) {
+        el.textContent = t(key);
+      }
+    });
+
+    document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
+      const key = el.getAttribute("data-i18n-placeholder");
+      if (key) {
+        el.placeholder = t(key);
+      }
+    });
+
+    document.querySelectorAll("[data-i18n-aria-label]").forEach(el => {
+      const key = el.getAttribute("data-i18n-aria-label");
+      if (key) {
+        el.setAttribute("aria-label", t(key));
+      }
+    });
+
+    document.querySelectorAll("[data-i18n-title]").forEach(el => {
+      const key = el.getAttribute("data-i18n-title");
+      if (key) {
+        el.title = t(key);
+      }
+    });
+
+    if (els.langItBtn && els.langEnBtn) {
+      const isIt = currentLanguage === "it";
+      els.langItBtn.classList.toggle("is-active", isIt);
+      els.langItBtn.setAttribute("aria-pressed", String(isIt));
+      els.langEnBtn.classList.toggle("is-active", !isIt);
+      els.langEnBtn.setAttribute("aria-pressed", String(!isIt));
+    }
+
+    if (els.saveIndicator) {
+      els.saveIndicator.textContent = t(currentSaveIndicatorKey);
+    }
+    updateResumeCard();
+    renderList();
+    updatePendingUI();
+    updateSubtitlePopoverUI();
+
+    if (state.loaded) {
+      if (state.sourceType === "local" && state.file) {
+        els.videoName.textContent = t("dock.localPrefix") + state.file.name;
+      }
+    } else {
+      els.videoName.textContent = t("dock.defaultVideoName");
+    }
+
+    const existingErr = els.videoStage.querySelector(".video-error");
+    if (existingErr) {
+      const isYt = state.sourceType === "youtube";
+      showVideoError(
+        isYt ? t("youtube.errorDefault", { code: "" }) : t("videoError.message"),
+        isYt ? t("youtube.errorTitle") : t("videoError.title")
+      );
+    }
+  }
 
   const state = {
     sourceType: "local",
@@ -1182,27 +1649,22 @@ kbd {
     }
     const count = Number(session.annotationCount || 0);
     const position = Number(session.playhead || 0);
-    const countText = count + (count === 1 ? " annotazione" : " annotazioni");
+    const countText = count === 1 ? t("list.countOne") : t("list.countMany", { count });
 
     if (session.sourceType === "youtube" || (!session.file && session.sourceId)) {
       const vid = session.sourceId || (session.projectKey ? session.projectKey.split(":").pop() : "video");
-      els.resumeMeta.textContent = "YouTube · " + vid + " · " + countText + " · posizione " + formatTime(position);
-      if (els.resumeNotice) els.resumeNotice.textContent = "Le annotazioni e il punto di riproduzione sono memorizzati in questo browser.";
-      els.resumeBtn.textContent = "Riprendi video YouTube";
+      els.resumeMeta.textContent = "YouTube · " + vid + " · " + countText + " · " + t("resume.position") + " " + formatTime(position);
+      if (els.resumeNotice) els.resumeNotice.textContent = t("resume.noticeYoutube");
+      els.resumeBtn.textContent = t("resume.btnYoutube");
     } else if (session.file) {
-      els.resumeMeta.textContent = session.file.name + " · " + countText + " · posizione " + formatTime(position);
-      if (els.resumeNotice) els.resumeNotice.textContent = "Le annotazioni e il punto di riproduzione sono memorizzati in questo browser. Per ragioni di sicurezza devi riselezionare il file video.";
-      els.resumeBtn.textContent = "Riprendi ultimo film";
+      els.resumeMeta.textContent = session.file.name + " · " + countText + " · " + t("resume.position") + " " + formatTime(position);
+      if (els.resumeNotice) els.resumeNotice.textContent = t("resume.noticeLocal");
+      els.resumeBtn.textContent = t("resume.btnLocal");
     } else {
       els.resumeCard.classList.add("is-hidden");
       return;
     }
     els.resumeCard.classList.remove("is-hidden");
-  }
-
-  function setSavedIndicator(text) {
-    if (!els.saveIndicator) return;
-    els.saveIndicator.textContent = text || "Salvato localmente";
   }
 
   function projectStorageKey(sourceType, sourceId) {
@@ -1235,7 +1697,7 @@ kbd {
     try {
       localStorage.setItem(state.projectKey, JSON.stringify(projectData));
       writeLastSession();
-      setSavedIndicator("Salvato localmente");
+      setSavedIndicator("save.saved");
     } catch (error) {
       const isQuota = error && (
         error.name === "QuotaExceededError" ||
@@ -1251,11 +1713,11 @@ kbd {
           localStorage.setItem(state.projectKey, JSON.stringify(fallbackData));
           writeLastSession();
         } catch (e) {}
-        showToast("I sottotitoli sono attivi, ma non è stato possibile salvarli nel browser. Dovranno essere ricaricati dopo il refresh.");
-        setSavedIndicator("Quota memoria superata");
+        showToast(t("toast.quotaExceeded"));
+        setSavedIndicator("save.quota");
       } else {
         console.warn("Salvataggio locale non disponibile", error);
-        setSavedIndicator("Salvataggio locale non disponibile");
+        setSavedIndicator("save.unavailable");
       }
     }
   }
@@ -1411,7 +1873,7 @@ kbd {
     renderAll();
     updateResumeCard();
 
-    showToast("Sessione dimenticata. Il video non verrà ripristinato automaticamente; le annotazioni del video restano salvate localmente.");
+    showToast(t("toast.sessionForgotten"));
   }
 
   function clearVideoError() {
@@ -1423,9 +1885,9 @@ kbd {
     clearVideoError();
     const panel = document.createElement("div");
     panel.className = "video-error";
-    const title = (typeof customTitle === "string" && customTitle) ? customTitle : "Il browser non riesce a riprodurre questo file";
-    const msg = (typeof customMessage === "string" && customMessage) ? customMessage : "Il contenitore o il codec del video non e supportato. Per la massima compatibilita usa MP4 con video H.264 e audio AAC, oppure WebM.";
-    panel.innerHTML = '<div><h2>' + escapeHtml(title) + '</h2><p>' + escapeHtml(msg) + '</p><button class="button primary" type="button">Apri un altro video</button></div>';
+    const title = (typeof customTitle === "string" && customTitle) ? customTitle : t("videoError.title");
+    const msg = (typeof customMessage === "string" && customMessage) ? customMessage : t("videoError.message");
+    panel.innerHTML = '<div><h2>' + escapeHtml(title) + '</h2><p>' + escapeHtml(msg) + '</p><button class="button primary" type="button">' + escapeHtml(t("videoError.openAnother")) + '</button></div>';
     panel.querySelector("button").addEventListener("click", () => {
       clearVideoError();
       returnToSourceSelect();
@@ -1483,18 +1945,18 @@ kbd {
   function getYouTubeErrorMessage(code) {
     switch (code) {
       case 2:
-        return "Parametro URL o identificativo video non valido.";
+        return t("youtube.error2");
       case 5:
-        return "Errore di riproduzione HTML5 nel player YouTube.";
+        return t("youtube.error5");
       case 100:
-        return "Video non trovato. Il video potrebbe essere stato rimosso o impostato come privato.";
+        return t("youtube.error100");
       case 101:
       case 150:
-        return "L'autore del video o YouTube non consentono la riproduzione tramite incorporamento.";
+        return t("youtube.error101_150");
       case 153:
-        return "Impossibile riprodurre questo video: restrizioni di origine o referer non identificabile. Verifica che l'applicazione sia servita tramite HTTP/HTTPS e che il video consenta l'incorporamento.";
+        return t("youtube.error153");
       default:
-        return "Si è verificato un errore nella riproduzione del video YouTube (codice " + code + ").";
+        return t("youtube.errorDefault", { code });
     }
   }
 
@@ -1527,7 +1989,7 @@ kbd {
       tag.src = "https://www.youtube.com/iframe_api";
       tag.onerror = () => {
         isYouTubeApiLoading = false;
-        showToast("Impossibile caricare le API di YouTube. Verifica la connessione.");
+        showToast(t("youtube.apiLoadError"));
       };
       document.head.appendChild(tag);
     }
@@ -1552,10 +2014,13 @@ kbd {
     writeLastSession();
     if (state.annotations.length > 0 || state.restoredPlayhead > 0 || state.subtitle) {
       const parts = [];
-      if (state.annotations.length > 0) parts.push(state.annotations.length + (state.annotations.length === 1 ? " annotazione" : " annotazioni"));
-      if (state.restoredPlayhead > 0) parts.push("posizione " + formatTime(state.restoredPlayhead));
-      if (state.subtitle) parts.push("sottotitoli " + (state.subtitle.filename || "attivi"));
-      showToast("Ripristinati: " + parts.join(" · ") + ".");
+      if (state.annotations.length > 0) {
+        const c = state.annotations.length;
+        parts.push(c === 1 ? t("list.countOne") : t("list.countMany", { count: c }));
+      }
+      if (state.restoredPlayhead > 0) parts.push(t("resume.position") + " " + formatTime(state.restoredPlayhead));
+      if (state.subtitle) parts.push(t("dock.subtitles").toLowerCase() + " " + (state.subtitle.filename || t("subtitle.active").toLowerCase()));
+      showToast(t("toast.restored", { parts: parts.join(" · ") }));
     }
   }
 
@@ -1574,7 +2039,7 @@ kbd {
     if (!state.projectKey || state.sourceType !== "youtube") return;
     const code = event.data;
     const msg = getYouTubeErrorMessage(code);
-    showVideoError(msg, "Impossibile riprodurre il video YouTube");
+    showVideoError(msg, t("youtube.errorTitle"));
   }
 
   function initYouTubePlayer(videoId) {
@@ -1657,12 +2122,12 @@ kbd {
     const previousSession = readLastSession();
     if (state.resumeRequested && previousSession && previousSession.file && !sameFile(previousSession.file, file)) {
       state.resumeRequested = false;
-      showToast("Questo non è il film dell'ultima sessione. Seleziona " + previousSession.file.name + ".");
+      showToast(t("toast.resumeMismatch", { name: previousSession.file.name }));
       return;
     }
     state.resumeRequested = false;
     if (!file.type.startsWith("video/") && !/\.(mp4|m4v|webm|ogv|ogg|mov)$/i.test(file.name)) {
-      showToast("Seleziona un file video.");
+      showToast(t("toast.selectVideoFile"));
       return;
     }
 
@@ -1687,7 +2152,7 @@ kbd {
 
     els.video.src = state.objectUrl;
     els.video.load();
-    els.videoName.textContent = "File locale · " + file.name;
+    els.videoName.textContent = t("dock.localPrefix") + file.name;
     els.emptyState.classList.add("is-hidden");
     els.workspace.classList.remove("is-hidden");
     renderAll();
@@ -1707,12 +2172,12 @@ kbd {
   function handleYouTubeSubmit() {
     const inputVal = els.youtubeUrlInput.value.trim();
     if (!inputVal) {
-      els.youtubeInputError.textContent = "Inserisci l'URL di un video YouTube.";
+      els.youtubeInputError.textContent = t("youtube.urlRequired");
       return;
     }
     const videoId = parseYouTubeId(inputVal);
     if (!videoId) {
-      els.youtubeInputError.textContent = "URL YouTube non valido o non supportato. Inserisci un link valido a un singolo video.";
+      els.youtubeInputError.textContent = t("youtube.invalidUrl");
       return;
     }
     els.youtubeInputError.textContent = "";
@@ -1791,18 +2256,18 @@ kbd {
     state.pendingIn = nowSeconds();
     updatePendingUI();
     savePlaybackPosition(true);
-    showToast("IN impostato a " + formatTime(state.pendingIn));
+    showToast(t("toast.inSet", { time: formatTime(state.pendingIn) }));
   }
 
   function setOutPoint() {
     if (!state.loaded) return;
     if (state.pendingIn === null) {
-      showToast("Imposta prima il punto IN.");
+      showToast(t("toast.setInFirst"));
       return;
     }
     const out = nowSeconds();
     if (out <= state.pendingIn) {
-      showToast("Il punto OUT deve essere successivo al punto IN.");
+      showToast(t("toast.outMustBeAfterIn"));
       return;
     }
     mediaAdapter.pause();
@@ -1837,12 +2302,12 @@ kbd {
   function deleteAnnotation(id) {
     const item = state.annotations.find(a => a.id === id);
     if (!item) return;
-    if (!window.confirm("Eliminare questa annotazione?")) return;
+    if (!window.confirm(t("toast.confirmDelete"))) return;
     state.annotations = state.annotations.filter(a => a.id !== id);
     saveLocal();
     savePlaybackPosition(true);
     renderAll();
-    showToast("Annotazione eliminata.");
+    showToast(t("toast.annotationDeleted"));
   }
 
   function seekTo(seconds) {
@@ -1867,29 +2332,29 @@ kbd {
     els.formError.textContent = "";
 
     if (!Number.isFinite(inSeconds) || inSeconds < 0) {
-      els.formError.textContent = "Inserisci un tempo IN valido.";
+      els.formError.textContent = t("validation.inInvalid");
       return;
     }
     if (Number.isFinite(duration) && inSeconds > duration) {
-      els.formError.textContent = "Il tempo IN supera la durata del film.";
+      els.formError.textContent = t("validation.inExceedsDuration");
       return;
     }
     if (type === "segment") {
       if (!Number.isFinite(outSeconds)) {
-        els.formError.textContent = "Inserisci un tempo OUT valido.";
+        els.formError.textContent = t("validation.outInvalid");
         return;
       }
       if (outSeconds <= inSeconds) {
-        els.formError.textContent = "Il tempo OUT deve essere successivo al tempo IN.";
+        els.formError.textContent = t("validation.outBeforeIn");
         return;
       }
       if (Number.isFinite(duration) && outSeconds > duration) {
-        els.formError.textContent = "Il tempo OUT supera la durata del film.";
+        els.formError.textContent = t("validation.outExceedsDuration");
         return;
       }
     }
     if (!comment) {
-      els.formError.textContent = "Inserisci un commento.";
+      els.formError.textContent = t("validation.commentRequired");
       return;
     }
 
@@ -1915,18 +2380,20 @@ kbd {
     savePlaybackPosition(true);
     renderAll();
     closeDrawer();
-    showToast(existingId ? "Annotazione aggiornata." : "Annotazione salvata.");
+    showToast(existingId ? t("toast.annotationUpdated") : t("toast.annotationSaved"));
   }
 
   function renderList() {
     const count = state.annotations.length;
     els.annotationCount.textContent = String(count);
-    els.listSummary.textContent = count === 1 ? "1 annotazione" : count + " annotazioni";
+    els.listSummary.textContent = count === 0
+      ? t("list.countZero")
+      : (count === 1 ? t("list.countOne") : t("list.countMany", { count }));
     els.exportBtn.disabled = !state.loaded || count === 0;
     els.clearAllBtn.disabled = count === 0;
 
     if (count === 0) {
-      els.annotationList.innerHTML = '<div class="annotation-empty">Nessuna annotazione salvata.<br>Usa Marker oppure IN-OUT durante la visione.</div>';
+      els.annotationList.innerHTML = '<div class="annotation-empty">' + t("list.empty") + '</div>';
       return;
     }
 
@@ -1934,13 +2401,14 @@ kbd {
       const time = item.type === "segment"
         ? formatTime(item.in) + " - " + formatTime(item.out)
         : formatTime(item.in);
+      const kindLabel = item.type === "segment" ? t("list.kindSegment") : t("list.kindMarker");
       return '<article class="annotation-card" data-id="' + escapeHtml(item.id) + '">' +
-        '<div class="annotation-card-head"><span class="annotation-kind">' + (item.type === "segment" ? "Segmento" : "Marker") + '</span><span class="annotation-time">' + escapeHtml(time) + '</span></div>' +
+        '<div class="annotation-card-head"><span class="annotation-kind">' + escapeHtml(kindLabel) + '</span><span class="annotation-time">' + escapeHtml(time) + '</span></div>' +
         '<div class="annotation-comment">' + escapeHtml(item.comment) + '</div>' +
         '<div class="annotation-card-actions">' +
-          '<button type="button" data-action="seek">Vai al punto</button>' +
-          '<button type="button" data-action="edit">Modifica</button>' +
-          '<button type="button" data-action="delete" class="delete">Elimina</button>' +
+          '<button type="button" data-action="seek">' + escapeHtml(t("list.seek")) + '</button>' +
+          '<button type="button" data-action="edit">' + escapeHtml(t("list.edit")) + '</button>' +
+          '<button type="button" data-action="delete" class="delete">' + escapeHtml(t("list.delete")) + '</button>' +
         '</div>' +
       '</article>';
     }).join("");
@@ -2097,11 +2565,12 @@ kbd {
     return activeTexts.join("\n");
   }
 
-  function formatOffset(offset) {
+  function formatOffset(offset, lang = currentLanguage) {
     const val = Number(offset) || 0;
-    if (Math.abs(val) < 0.001) return "+0,0 s";
+    const decSep = lang === "en" ? "." : ",";
+    if (Math.abs(val) < 0.001) return "+0" + decSep + "0 s";
     const sign = val > 0 ? "+" : "−";
-    return sign + Math.abs(val).toFixed(1).replace(".", ",") + " s";
+    return sign + Math.abs(val).toFixed(1).replace(".", decSep) + " s";
   }
 
   function renderSubtitles() {
@@ -2134,7 +2603,7 @@ kbd {
     const hasSub = !!(state.subtitle && Array.isArray(state.subtitle.cues) && state.subtitle.cues.length > 0);
 
     if (hasSub) {
-      els.subtitleFileName.textContent = state.subtitle.filename || "Sottotitoli attivi";
+      els.subtitleFileName.textContent = state.subtitle.filename || t("subtitle.active");
       els.subtitleToggleBtn.disabled = false;
       els.subtitleToggleBtn.textContent = state.subtitle.enabled ? "ON" : "OFF";
       els.subtitleToggleBtn.classList.toggle("primary", state.subtitle.enabled);
@@ -2159,7 +2628,7 @@ kbd {
       els.subtitleBtn.classList.toggle("has-subtitles", state.subtitle.enabled);
       els.subtitleBtn.setAttribute("aria-pressed", String(state.subtitle.enabled));
     } else {
-      els.subtitleFileName.textContent = "Nessun file caricato";
+      els.subtitleFileName.textContent = t("subtitle.noFile");
       els.subtitleToggleBtn.disabled = true;
       els.subtitleToggleBtn.textContent = "ON / OFF";
       els.subtitleToggleBtn.classList.remove("primary");
@@ -2176,13 +2645,22 @@ kbd {
       els.subSyncMinusBtn.disabled = true;
       els.subSyncPlusBtn.disabled = true;
       els.subSyncResetBtn.disabled = true;
-      els.subOffsetDisplay.textContent = "+0,0 s";
+      els.subOffsetDisplay.textContent = formatOffset(0);
 
       els.removeSubtitleBtn.disabled = true;
 
       els.subtitleBtn.classList.remove("has-subtitles");
       els.subtitleBtn.setAttribute("aria-pressed", "false");
     }
+
+    const isEn = currentLanguage === "en";
+    els.subSyncMinusBtn.textContent = isEn ? "−0.5 s" : "−0,5 s";
+    els.subSyncPlusBtn.textContent = isEn ? "+0.5 s" : "+0,5 s";
+    els.subSyncMinusBtn.setAttribute("aria-label", t("subtitle.syncMinusAria"));
+    els.subSyncPlusBtn.setAttribute("aria-label", t("subtitle.syncPlusAria"));
+    els.subFontSmallBtn.setAttribute("aria-label", t("subtitle.fontSmallAria"));
+    els.subFontMediumBtn.setAttribute("aria-label", t("subtitle.fontMediumAria"));
+    els.subFontLargeBtn.setAttribute("aria-label", t("subtitle.fontLargeAria"));
   }
 
   function openSubtitlePopover() {
@@ -2211,7 +2689,7 @@ kbd {
     const isSrt = /\.srt$/i.test(name);
     const isVtt = /\.vtt$/i.test(name);
     if (!isSrt && !isVtt) {
-      showToast("Formato non supportato. Seleziona un file .srt o .vtt.");
+      showToast(t("toast.subtitlesUnsupported"));
       return;
     }
 
@@ -2222,7 +2700,7 @@ kbd {
         const format = isVtt || text.trimStart().startsWith("WEBVTT") ? "vtt" : "srt";
         const cues = format === "vtt" ? parseVtt(text) : parseSrt(text);
         if (cues.length === 0) {
-          showToast("Nessun sottotitolo valido trovato nel file.");
+          showToast(t("toast.subtitlesEmpty"));
           return;
         }
 
@@ -2238,14 +2716,14 @@ kbd {
         saveLocal();
         renderSubtitles();
         updateSubtitlePopoverUI();
-        showToast("Sottotitoli caricati: " + cues.length + " battute.");
+        showToast(t("toast.subtitlesLoaded", { count: cues.length }));
       } catch (err) {
         console.error("Errore durante la lettura del file sottotitoli:", err);
-        showToast("Errore durante la lettura del file sottotitoli.");
+        showToast(t("toast.subtitlesReadError"));
       }
     };
     reader.onerror = () => {
-      showToast("Impossibile leggere il file selezionato.");
+      showToast(t("toast.subtitlesFileError"));
     };
     reader.readAsText(file, "utf-8");
   }
@@ -2256,7 +2734,7 @@ kbd {
     saveLocal();
     renderSubtitles();
     updateSubtitlePopoverUI();
-    showToast("Sottotitoli rimossi.");
+    showToast(t("toast.subtitlesRemoved"));
   }
 
   function updateTimeUI() {
@@ -2274,7 +2752,7 @@ kbd {
       els.pendingInMarker.classList.add("is-hidden");
       return;
     }
-    els.pendingStatus.textContent = "IN: " + formatTime(state.pendingIn) + " - premi OUT quando termina la sequenza";
+    els.pendingStatus.textContent = t("dock.pendingStatus", { time: formatTime(state.pendingIn) });
     if (Number.isFinite(duration) && duration > 0) {
       els.pendingInMarker.style.left = clamp(state.pendingIn / duration * 100, 0, 100) + "%";
       els.pendingInMarker.classList.remove("is-hidden");
@@ -2298,7 +2776,7 @@ kbd {
 
   function exportCsv() {
     if (state.annotations.length === 0) {
-      showToast("Non ci sono annotazioni da esportare.");
+      showToast(t("toast.csvNoAnnotations"));
       return;
     }
     const rows = [
@@ -2333,7 +2811,7 @@ kbd {
     link.click();
     link.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    showToast("CSV esportato.");
+    showToast(t("toast.csvExported"));
   }
 
   function toggleFullscreen() {
@@ -2341,30 +2819,33 @@ kbd {
     if (document.fullscreenElement) {
       document.exitFullscreen().catch(() => {});
     } else if (els.workspace.requestFullscreen) {
-      els.workspace.requestFullscreen().catch(() => showToast("Schermo intero non disponibile in questo browser."));
+      els.workspace.requestFullscreen().catch(() => showToast(t("toast.fullscreenUnavailable")));
     }
   }
 
   function clearAllAnnotations() {
     if (state.annotations.length === 0) return;
-    if (!window.confirm("Cancellare tutte le annotazioni di questo video?")) return;
+    if (!window.confirm(t("toast.confirmClearAll"))) return;
     state.annotations = [];
     state.pendingIn = null;
     saveLocal();
     savePlaybackPosition(true);
     renderAll();
-    showToast("Annotazioni cancellate.");
+    showToast(t("toast.annotationsCleared"));
   }
 
   function handleDroppedFiles(files) {
     const file = Array.from(files || []).find(f => f.type.startsWith("video/") || /\.(mp4|m4v|webm|ogv|ogg|mov)$/i.test(f.name));
     if (file) loadVideo(file);
-    else showToast("Nel trascinamento non e stato trovato un file video compatibile.");
+    else showToast(t("toast.dropNoCompatible"));
   }
 
   function isTypingTarget(target) {
     return target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable);
   }
+
+  els.langItBtn.addEventListener("click", () => setLanguage("it"));
+  els.langEnBtn.addEventListener("click", () => setLanguage("en"));
 
   els.openVideoBtn.addEventListener("click", () => {
     if (state.loaded) {
@@ -2412,10 +2893,13 @@ kbd {
     writeLastSession();
     if (state.annotations.length > 0 || state.restoredPlayhead > 0 || state.subtitle) {
       const parts = [];
-      if (state.annotations.length > 0) parts.push(state.annotations.length + (state.annotations.length === 1 ? " annotazione" : " annotazioni"));
-      if (state.restoredPlayhead > 0) parts.push("posizione " + formatTime(state.restoredPlayhead));
-      if (state.subtitle) parts.push("sottotitoli " + (state.subtitle.filename || "attivi"));
-      showToast("Ripristinati: " + parts.join(" · ") + ".");
+      if (state.annotations.length > 0) {
+        const c = state.annotations.length;
+        parts.push(c === 1 ? t("list.countOne") : t("list.countMany", { count: c }));
+      }
+      if (state.restoredPlayhead > 0) parts.push(t("resume.position") + " " + formatTime(state.restoredPlayhead));
+      if (state.subtitle) parts.push(t("dock.subtitles").toLowerCase() + " " + (state.subtitle.filename || t("subtitle.active").toLowerCase()));
+      showToast(t("toast.restored", { parts: parts.join(" · ") }));
     }
   });
   els.video.addEventListener("timeupdate", () => {
@@ -2595,6 +3079,13 @@ kbd {
     state,
     mediaAdapter,
     els,
+    translations,
+    t,
+    currentLanguage: () => currentLanguage,
+    setLanguage,
+    detectInitialLanguage,
+    applyTranslations,
+    formatOffset,
     updateTimeUI,
     renderAll,
     loadVideo,
@@ -2607,6 +3098,7 @@ kbd {
   updateTypeUI();
   updateResumeCard();
   renderAll();
+  applyTranslations();
 
   // Auto-restore YouTube session if present
   const initSession = readLastSession();
