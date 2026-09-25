@@ -776,9 +776,9 @@ kbd {
         <div id="resumeCard" class="resume-card is-hidden">
           <strong data-i18n="resume.title">Ultimo lavoro salvato</strong>
           <p id="resumeMeta" class="resume-meta"></p>
-          <p id="resumeNotice">Le annotazioni e il punto di riproduzione sono memorizzati in questo browser. Per ragioni di sicurezza devi riselezionare il file video.</p>
+          <p id="resumeNotice" data-i18n="resume.noticeLocal">Le annotazioni e il punto di riproduzione sono memorizzati in questo browser. Per ragioni di sicurezza devi riselezionare il file video.</p>
           <div class="resume-actions">
-            <button id="resumeBtn" class="button secondary" type="button">Riprendi ultimo film</button>
+            <button id="resumeBtn" class="button secondary" type="button" data-i18n="resume.btnLocal">Riprendi ultimo film</button>
             <button id="forgetResumeBtn" class="text-button danger" type="button" data-i18n="resume.forget">Dimentica questa sessione</button>
           </div>
         </div>
@@ -861,7 +861,7 @@ kbd {
 
           <div id="listPanel" class="drawer-panel is-hidden" role="tabpanel">
             <div class="list-toolbar">
-              <span id="listSummary">0 annotazioni</span>
+              <span id="listSummary" data-i18n="list.countZero">0 annotazioni</span>
               <button id="clearAllBtn" class="text-button danger" type="button" data-i18n="list.clearAll">Cancella tutte</button>
             </div>
             <div id="annotationList" class="annotation-list"></div>
@@ -930,7 +930,7 @@ kbd {
           </div>
           <div class="subtitle-file-info" style="margin-top: 10px;">
             <span class="subtitle-info-label" data-i18n="subtitle.fileLabel">File:</span>
-            <span id="subtitleFileName" class="subtitle-file-name">Nessun file caricato</span>
+            <span id="subtitleFileName" class="subtitle-file-name" data-i18n="subtitle.noFile">Nessun file caricato</span>
           </div>
           
           <div class="subtitle-popover-section" style="margin-top: 12px;">
@@ -1451,6 +1451,7 @@ kbd {
     }
     updateResumeCard();
     renderList();
+    renderTimeline();
     updatePendingUI();
     updateSubtitlePopoverUI();
 
@@ -2430,7 +2431,7 @@ kbd {
         node.style.width = width + "%";
       }
       node.title = (item.type === "segment" ? formatTime(item.in) + " - " + formatTime(item.out) : formatTime(item.in)) + "\n" + item.comment;
-      node.setAttribute("aria-label", "Vai all'annotazione a " + formatTime(item.in));
+      node.setAttribute("aria-label", t("timeline.markerAria", { time: formatTime(item.in) }));
       node.addEventListener("click", event => {
         event.stopPropagation();
         seekTo(item.in);
