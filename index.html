@@ -1490,7 +1490,8 @@ kbd {
     restoredPlayhead: 0,
     lastPlaybackSaveAt: 0,
     resumeRequested: false,
-    subtitle: null
+    subtitle: null,
+    videoTitle: null
   };
 
   const mediaAdapter = {
@@ -1852,6 +1853,7 @@ kbd {
       state.lastPlaybackSaveAt = 0;
       state.resumeRequested = false;
       state.subtitle = null;
+      state.videoTitle = null;
     }
   }
 
@@ -2007,6 +2009,14 @@ kbd {
     }
     state.loaded = true;
     clearVideoError();
+    try {
+      if (event && event.target && typeof event.target.getVideoData === "function") {
+        const data = event.target.getVideoData();
+        if (data && typeof data.title === "string" && data.title.trim()) {
+          state.videoTitle = data.title.trim();
+        }
+      }
+    } catch (e) {}
     const dur = mediaAdapter.getDuration();
     if (state.restoredPlayhead > 0 && dur > 0) {
       mediaAdapter.seek(state.restoredPlayhead);
@@ -2027,6 +2037,14 @@ kbd {
 
   function onYouTubePlayerStateChange(event) {
     if (!state.loaded || !state.projectKey || state.sourceType !== "youtube") return;
+    try {
+      if (!state.videoTitle && event && event.target && typeof event.target.getVideoData === "function") {
+        const data = event.target.getVideoData();
+        if (data && typeof data.title === "string" && data.title.trim()) {
+          state.videoTitle = data.title.trim();
+        }
+      }
+    } catch (e) {}
     if (window.YT && event.data === window.YT.PlayerState.PLAYING) {
       startUiTimer();
     } else if (window.YT && (event.data === window.YT.PlayerState.PAUSED || event.data === window.YT.PlayerState.ENDED)) {
@@ -2102,6 +2120,7 @@ kbd {
     state.sourceLabel = "https://www.youtube.com/watch?v=" + videoId;
     state.projectKey = projectStorageKey("youtube", videoId);
     state.fallbackProjectKey = null;
+    state.videoTitle = null;
     state.loaded = false;
     state.pendingIn = null;
     loadLocal();
@@ -2144,6 +2163,7 @@ kbd {
     state.sourceId = [file.name, file.size, file.lastModified].join(":");
     state.sourceLabel = file.name;
     state.file = file;
+    state.videoTitle = file.name.replace(/\.[^.]+$/, "");
     state.projectKey = projectStorageKey("local", state.sourceId);
     state.fallbackProjectKey = "video-annotator:v1:" + state.sourceId;
     state.objectUrl = URL.createObjectURL(file);
@@ -2770,9 +2790,83 @@ kbd {
     setControlsEnabled(state.loaded);
   }
 
+  function sanitizeFilenamePart(input, maxLength = 60) {
+    if (!input || typeof input !== "string") return "video";
+    let s = input
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+    s = s.replace(/[^a-z0-9]+/g, "-");
+    s = s.replace(/-+/g, "-");
+    s = s.replace(/^-+|-+$/g, "");
+    if (s.length > maxLength) {
+      s = s.slice(0, maxLength).replace(/-+$/, "");
+    }
+    return s || "video";
+  }
+
+  function getLocalDateString(d = new Date()) {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return year + "-" + month + "-" + day;
+  }
+
+  function generateCsvFilename(sourceState, date = new Date()) {
+    const s = sourceState || state;
+    const dateStr = getLocalDateString(date);
+    if (s.sourceType === "youtube") {
+      let rawTitle = "";
+      if (s.ytPlayer && typeof s.ytPlayer.getVideoData === "function") {
+        try {
+          const data = s.ytPlayer.getVideoData();
+          if (data && typeof data.title === "string" && data.title.trim()) {
+            rawTitle = data.title.trim();
+          }
+        } catch (e) {}
+      }
+      if (!rawTitle && s.videoTitle) {
+        rawTitle = s.videoTitle;
+      }
+      const cleanTitle = sanitizeFilenamePart(rawTitle);
+      const ytId = s.sourceId || "video";
+      return "video-annotator_youtube_" + cleanTitle + "_" + ytId + "_" + dateStr + ".csv";
+    }
+    let rawName = "";
+    if (s.file && typeof s.file.name === "string") {
+      rawName = s.file.name.replace(/\.[^.]+$/, "");
+    } else if (s.sourceLabel && typeof s.sourceLabel === "string") {
+      rawName = s.sourceLabel.replace(/\.[^.]+$/, "");
+    } else if (s.videoTitle && typeof s.videoTitle === "string") {
+      rawName = s.videoTitle;
+    }
+    const cleanTitle = sanitizeFilenamePart(rawName);
+    return "video-annotator_local_" + cleanTitle + "_" + dateStr + ".csv";
+  }
+
   function csvCell(value) {
     const text = value === null || value === undefined ? "" : String(value);
     return '"' + text.replaceAll('"', '""') + '"';
+  }
+
+  function generateCsv(annotations, sourceType, sourceIdentifier) {
+    const rows = [
+      ["ID", "Type", "IN", "OUT", "IN_seconds", "OUT_seconds", "Comment", "Source", "Video"]
+    ];
+    (annotations || []).forEach((item, index) => {
+      rows.push([
+        index + 1,
+        item.type === "segment" ? "segment" : "marker",
+        formatTime(item.in),
+        item.type === "segment" && Number.isFinite(item.out) ? formatTime(item.out) : "",
+        item.in.toFixed(3),
+        item.type === "segment" && Number.isFinite(item.out) ? item.out.toFixed(3) : "",
+        item.comment,
+        sourceType,
+        sourceIdentifier
+      ]);
+    });
+    return "\uFEFF" + rows.map(row => row.map(csvCell).join(",")).join("\r\n");
   }
 
   function exportCsv() {
@@ -2780,34 +2874,17 @@ kbd {
       showToast(t("toast.csvNoAnnotations"));
       return;
     }
-    const rows = [
-      ["ID", "Tipo", "IN", "OUT", "IN_secondi", "OUT_secondi", "Commento", "Sorgente", "Video"]
-    ];
     const sourceIdentifier = state.sourceType === "youtube"
       ? ("https://www.youtube.com/watch?v=" + state.sourceId)
       : (state.file ? state.file.name : (state.sourceLabel || ""));
-    state.annotations.slice().sort(annotationSort).forEach((item, index) => {
-      rows.push([
-        index + 1,
-        item.type === "segment" ? "segmento" : "marker",
-        formatTime(item.in),
-        item.type === "segment" && Number.isFinite(item.out) ? formatTime(item.out) : "",
-        item.in.toFixed(3),
-        item.type === "segment" && Number.isFinite(item.out) ? item.out.toFixed(3) : "",
-        item.comment,
-        state.sourceType,
-        sourceIdentifier
-      ]);
-    });
-    const csv = "\uFEFF" + rows.map(row => row.map(csvCell).join(",")).join("\r\n");
+    const sorted = state.annotations.slice().sort(annotationSort);
+    const csv = generateCsv(sorted, state.sourceType, sourceIdentifier);
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    const base = state.sourceType === "youtube"
-      ? ("youtube_" + state.sourceId)
-      : (state.file ? state.file.name.replace(/\.[^.]+$/, "") : "film");
+    const filename = generateCsvFilename(state);
     link.href = url;
-    link.download = base + "_annotazioni.csv";
+    link.download = filename;
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -3093,7 +3170,11 @@ kbd {
     loadYouTubeVideo,
     teardownCurrentMedia,
     forgetCurrentSession,
-    renderSubtitles
+    renderSubtitles,
+    generateCsv,
+    generateCsvFilename,
+    sanitizeFilenamePart,
+    getLocalDateString
   };
 
   updateTypeUI();

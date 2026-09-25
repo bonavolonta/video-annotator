@@ -314,8 +314,8 @@ assert(getYouTubeErrorMessage(153).includes("restrizioni di origine o referer"),
 
 console.log("   ✓ YouTube error code mapping (2, 5, 100, 101, 150, 153) verified!");
 
-// 5. CSV Export v1.2 Formatter
-console.log("\n5. Testing CSV Export Formatter v1.2...");
+// 5. Canonical English CSV Formatter & Filename Generator (v1.4)
+console.log("\n5. Testing Canonical English CSV Formatter & Filename Generator...");
 
 function formatTime(seconds) {
   if (!Number.isFinite(seconds) || seconds < 0) seconds = 0;
@@ -332,14 +332,68 @@ function csvCell(value) {
   return '"' + text.replaceAll('"', '""') + '"';
 }
 
+function sanitizeFilenamePart(input, maxLength = 60) {
+  if (!input || typeof input !== "string") return "video";
+  let s = input
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  s = s.replace(/[^a-z0-9]+/g, "-");
+  s = s.replace(/-+/g, "-");
+  s = s.replace(/^-+|-+$/g, "");
+  if (s.length > maxLength) {
+    s = s.slice(0, maxLength).replace(/-+$/, "");
+  }
+  return s || "video";
+}
+
+function getLocalDateString(d = new Date()) {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return year + "-" + month + "-" + day;
+}
+
+function generateCsvFilename(sourceState, date = new Date()) {
+  const s = sourceState || {};
+  const dateStr = getLocalDateString(date);
+  if (s.sourceType === "youtube") {
+    let rawTitle = "";
+    if (s.ytPlayer && typeof s.ytPlayer.getVideoData === "function") {
+      try {
+        const data = s.ytPlayer.getVideoData();
+        if (data && typeof data.title === "string" && data.title.trim()) {
+          rawTitle = data.title.trim();
+        }
+      } catch (e) {}
+    }
+    if (!rawTitle && s.videoTitle) {
+      rawTitle = s.videoTitle;
+    }
+    const cleanTitle = sanitizeFilenamePart(rawTitle);
+    const ytId = s.sourceId || "video";
+    return "video-annotator_youtube_" + cleanTitle + "_" + ytId + "_" + dateStr + ".csv";
+  }
+  let rawName = "";
+  if (s.file && typeof s.file.name === "string") {
+    rawName = s.file.name.replace(/\.[^.]+$/, "");
+  } else if (s.sourceLabel && typeof s.sourceLabel === "string") {
+    rawName = s.sourceLabel.replace(/\.[^.]+$/, "");
+  } else if (s.videoTitle && typeof s.videoTitle === "string") {
+    rawName = s.videoTitle;
+  }
+  const cleanTitle = sanitizeFilenamePart(rawName);
+  return "video-annotator_local_" + cleanTitle + "_" + dateStr + ".csv";
+}
+
 function generateCsv(annotations, sourceType, sourceIdentifier) {
   const rows = [
-    ["ID", "Tipo", "IN", "OUT", "IN_secondi", "OUT_secondi", "Commento", "Sorgente", "Video"]
+    ["ID", "Type", "IN", "OUT", "IN_seconds", "OUT_seconds", "Comment", "Source", "Video"]
   ];
-  annotations.forEach((item, index) => {
+  (annotations || []).forEach((item, index) => {
     rows.push([
       index + 1,
-      item.type === "segment" ? "segmento" : "marker",
+      item.type === "segment" ? "segment" : "marker",
       formatTime(item.in),
       item.type === "segment" && Number.isFinite(item.out) ? formatTime(item.out) : "",
       item.in.toFixed(3),
@@ -352,26 +406,127 @@ function generateCsv(annotations, sourceType, sourceIdentifier) {
   return "\uFEFF" + rows.map(r => r.map(csvCell).join(",")).join("\r\n");
 }
 
-// Test local CSV
+// 5.1 Test Canonical CSV Format & RFC 4180
+console.log("   5.1 Testing Canonical CSV Format & RFC 4180...");
 const localAnnotations = [
   { type: "marker", in: 12.345, comment: 'Commento con "virgolette" e virgole, ecc.' },
-  { type: "segment", in: 20.0, out: 45.5, comment: "Dettaglio inquadratura: città" }
+  { type: "segment", in: 20.0, out: 45.5, comment: "Dettaglio inquadratura: città\nSeconda riga commento" }
 ];
 const localCsv = generateCsv(localAnnotations, "local", "film_01.mp4");
 assert(localCsv.startsWith("\uFEFF"), "CSV must include UTF-8 BOM");
-assert(localCsv.includes('"Sorgente","Video"'), "Header must include Sorgente and Video");
+assert(localCsv.includes('"ID","Type","IN","OUT","IN_seconds","OUT_seconds","Comment","Source","Video"'), "Canonical English header present");
+assert(!localCsv.includes('"Tipo"'), "No Italian 'Tipo' header");
+assert(!localCsv.includes('"Sorgente"'), "No Italian 'Sorgente' header");
+assert(!localCsv.includes('"IN_secondi"'), "No Italian 'IN_secondi' header");
+assert(localCsv.includes('"marker"'), "Canonical type 'marker'");
+assert(localCsv.includes('"segment"'), "Canonical type 'segment'");
+assert(!localCsv.includes('"segmento"'), "No Italian 'segmento'");
 assert(localCsv.includes('"local","film_01.mp4"'), "Local source metadata present");
 assert(localCsv.includes('""virgolette""'), "Quotes must be escaped RFC 4180 style");
+assert(localCsv.includes("Seconda riga commento"), "Multiline comment preserved RFC 4180");
+assert(localCsv.includes('"12.345"'), "Machine readable IN seconds");
+assert(localCsv.includes('"45.500"'), "Machine readable OUT seconds");
 
-// Test YouTube CSV
 const ytAnnotations = [
   { type: "segment", in: 65.123, out: 120.456, comment: "Scena d'azione con caratteri speciali: àèéìòù" }
 ];
 const ytCsv = generateCsv(ytAnnotations, "youtube", "https://www.youtube.com/watch?v=dQw4w9WgXcQ");
 assert(ytCsv.includes('"youtube","https://www.youtube.com/watch?v=dQw4w9WgXcQ"'), "YouTube source metadata present");
 assert(ytCsv.includes("àèéìòù"), "Unicode must be preserved");
+assert(ytCsv.includes('"segment"'), "Canonical segment type");
+console.log("       ✓ Canonical CSV formatting & RFC 4180 tests passed!");
 
-console.log("   ✓ CSV Export v1.2 tests passed!");
+// 5.2 Test Filename Sanitization
+console.log("   5.2 Testing Filename Sanitization (sanitizeFilenamePart)...");
+assert.strictEqual(sanitizeFilenamePart("Crip Camp: A Disability Revolution"), "crip-camp-a-disability-revolution", "Colons and spaces");
+assert.strictEqual(sanitizeFilenamePart("L\u2019educazione, l\x27inclusione & la cura!"), "l-educazione-l-inclusione-la-cura", "Apostrophes, commas, ampersand, exclamation");
+assert.strictEqual(sanitizeFilenamePart("È un film già visto: café & cinéma"), "e-un-film-gia-visto-cafe-cinema", "Diacritics normalized");
+assert.strictEqual(sanitizeFilenamePart(""), "video", "Empty string -> fallback");
+assert.strictEqual(sanitizeFilenamePart(null), "video", "null -> fallback");
+assert.strictEqual(sanitizeFilenamePart(undefined), "video", "undefined -> fallback");
+assert.strictEqual(sanitizeFilenamePart("   "), "video", "Whitespace only -> fallback");
+assert.strictEqual(sanitizeFilenamePart("---"), "video", "Dashes only -> fallback");
+assert.strictEqual(sanitizeFilenamePart(":/\\?\"*<>|"), "video", "Filesystem illegal characters only -> fallback");
+assert.strictEqual(sanitizeFilenamePart("a".repeat(100)), "a".repeat(60), "Truncated to 60 characters");
+assert.strictEqual(sanitizeFilenamePart("a".repeat(59) + "-b"), "a".repeat(59), "Trailing dash after truncation cleaned");
+console.log("       ✓ Filename sanitization tests passed!");
+
+// 5.3 Test Filename Generation for YouTube and Local
+console.log("   5.3 Testing Filename Generation...");
+const mockFixedDate = new Date(2026, 8, 25); // 2026-09-25
+
+// YouTube with video title
+const ytStateWithTitle = {
+  sourceType: "youtube",
+  sourceId: "OFS8SpwioZ4",
+  videoTitle: "Crip Camp: A Disability Revolution"
+};
+assert.strictEqual(
+  generateCsvFilename(ytStateWithTitle, mockFixedDate),
+  "video-annotator_youtube_crip-camp-a-disability-revolution_OFS8SpwioZ4_2026-09-25.csv",
+  "YouTube filename with video title"
+);
+
+// YouTube with getVideoData() on player mock
+const ytStateWithPlayer = {
+  sourceType: "youtube",
+  sourceId: "OFS8SpwioZ4",
+  ytPlayer: {
+    getVideoData: () => ({ title: "Crip Camp: A Disability Revolution" })
+  }
+};
+assert.strictEqual(
+  generateCsvFilename(ytStateWithPlayer, mockFixedDate),
+  "video-annotator_youtube_crip-camp-a-disability-revolution_OFS8SpwioZ4_2026-09-25.csv",
+  "YouTube filename from player.getVideoData()"
+);
+
+// YouTube fallback without title
+const ytStateNoTitle = {
+  sourceType: "youtube",
+  sourceId: "OFS8SpwioZ4"
+};
+assert.strictEqual(
+  generateCsvFilename(ytStateNoTitle, mockFixedDate),
+  "video-annotator_youtube_video_OFS8SpwioZ4_2026-09-25.csv",
+  "YouTube fallback filename without title"
+);
+
+// Local file standard
+const localStateStd = {
+  sourceType: "local",
+  file: { name: "Crip Camp.mp4" }
+};
+assert.strictEqual(
+  generateCsvFilename(localStateStd, mockFixedDate),
+  "video-annotator_local_crip-camp_2026-09-25.csv",
+  "Local file filename without extension"
+);
+
+// Local file with multiple dots
+const localStateMultiDots = {
+  sourceType: "local",
+  file: { name: "Crip.Camp.2020.1080p.mp4" }
+};
+assert.strictEqual(
+  generateCsvFilename(localStateMultiDots, mockFixedDate),
+  "video-annotator_local_crip-camp-2020-1080p_2026-09-25.csv",
+  "Local file with multiple dots"
+);
+
+// Local file fallback when name after sanitization is empty
+const localStateFallback = {
+  sourceType: "local",
+  file: { name: ".mp4" }
+};
+assert.strictEqual(
+  generateCsvFilename(localStateFallback, mockFixedDate),
+  "video-annotator_local_video_2026-09-25.csv",
+  "Local file fallback filename"
+);
+console.log("       ✓ Filename generation tests passed!");
+
+console.log("   ✓ Canonical CSV Export tests passed!");
 
 // 6. Media Teardown & Forget Session Semantics
 console.log("\n6. Testing Media Teardown & Forget Session Semantics...");
@@ -1183,13 +1338,40 @@ const sampleAnnotations = [
 
 // CSV generated while active UI language is English or Italian must produce the exact same canonical output
 const csvGenerated = generateCsv(sampleAnnotations, "local", "test.mp4");
-assert(csvGenerated.includes('"ID","Tipo","IN","OUT","IN_secondi","OUT_secondi","Commento","Sorgente","Video"'), "CSV header must remain canonical Italian");
-assert(csvGenerated.includes('"marker"'), "Marker type must remain 'marker'");
-assert(csvGenerated.includes('"segmento"'), "Segment type must remain 'segmento'");
+assert(csvGenerated.includes('"ID","Type","IN","OUT","IN_seconds","OUT_seconds","Comment","Source","Video"'), "CSV header must remain canonical English regardless of UI language");
+assert(!csvGenerated.includes('"Tipo"'), "CSV header must not contain Italian 'Tipo'");
+assert(!csvGenerated.includes('"Sorgente"'), "CSV header must not contain Italian 'Sorgente'");
+assert(!csvGenerated.includes('"IN_secondi"'), "CSV header must not contain Italian 'IN_secondi'");
+assert(!csvGenerated.includes('"OUT_secondi"'), "CSV header must not contain Italian 'OUT_secondi'");
+assert(csvGenerated.includes('"marker"'), "Marker type must remain canonical 'marker'");
+assert(csvGenerated.includes('"segment"'), "Segment type must remain canonical 'segment'");
+assert(!csvGenerated.includes('"segmento"'), "Segment type must NOT be Italian 'segmento'");
 assert(csvGenerated.includes('"00:01:05.432"'), "Timecode formatting HH:MM:SS.mmm must remain unchanged");
 assert(csvGenerated.includes('"00:01:40.000"'), "Timecode IN formatting unchanged");
 assert(csvGenerated.includes('"00:02:05.500"'), "Timecode OUT formatting unchanged");
 assert(csvGenerated.includes('"Analisi inquadratura / Shot analysis"'), "User text must be untouched");
+
+// Verify filename algorithm is identical in IT and EN UI
+const testDate = new Date(2026, 8, 25);
+const ytSampleState = {
+  sourceType: "youtube",
+  sourceId: "OFS8SpwioZ4",
+  videoTitle: "Crip Camp: A Disability Revolution"
+};
+const localSampleState = {
+  sourceType: "local",
+  file: { name: "Crip Camp.mp4" }
+};
+assert.strictEqual(
+  generateCsvFilename(ytSampleState, testDate),
+  "video-annotator_youtube_crip-camp-a-disability-revolution_OFS8SpwioZ4_2026-09-25.csv",
+  "YouTube filename identical in IT/EN"
+);
+assert.strictEqual(
+  generateCsvFilename(localSampleState, testDate),
+  "video-annotator_local_crip-camp_2026-09-25.csv",
+  "Local filename identical in IT/EN"
+);
 
 console.log("       ✓ Canonical CSV export and timecode language-independence passed!");
 

@@ -50,8 +50,8 @@
 5. **Ripristino intelligente dopo refresh:**
    * YouTube: ripristino automatico istantaneo di video, playhead, annotazioni e sottotitoli.
    * File locale: scheda "Riprendi ultimo film" con ripristino sicuro dopo riselezione del file.
-6. **Esportazione CSV conforme a RFC 4180:**
-   * Colonne `Sorgente` e `Video`, BOM UTF-8 per compatibilità totale con Excel e LibreOffice.
+6. **Esportazione CSV conforme a RFC 4180 con schema canonico inglese:**
+   * Schema unificato e indipendente dalla lingua dell'interfaccia (`ID,Type,IN,OUT,IN_seconds,OUT_seconds,Comment,Source,Video`), valori canonici (`marker`, `segment`, `local`, `youtube`), filename descrittivo e BOM UTF-8 per compatibilità totale con Excel e LibreOffice.
 7. **Gestione pulita della sessione:**
    * Funzione "Dimentica questa sessione" con distruzione rigorosa degli iframe YouTube e prevenzione della riesumazione automatica dei dati.
 
