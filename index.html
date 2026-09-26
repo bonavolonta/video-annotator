@@ -115,7 +115,6 @@ button:disabled { cursor: not-allowed; opacity: .45; }
   display: grid;
   place-items: center;
   padding: 28px;
-  outline: none;
 }
 .empty-state.is-dragging { background: rgba(255,255,255,.04); }
 .empty-card { max-width: 620px; text-align: center; }
@@ -156,7 +155,7 @@ button:disabled { cursor: not-allowed; opacity: .45; }
   min-width: 0;
   height: 48px;
   padding: 0 14px;
-  border: 1px solid #39414d;
+  border: 1px solid #586577;
   border-radius: 10px;
   background: #0f1217;
   color: #f4f6f8;
@@ -374,6 +373,10 @@ button:disabled { cursor: not-allowed; opacity: .45; }
   font-weight: 650;
 }
 .type-switch input:checked + span { background: #eceff3; color: #11151b; border-color: #eceff3; }
+.type-switch input:focus-visible + span {
+  outline: 2px solid #72a5f6;
+  outline-offset: 2px;
+}
 
 .time-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; }
 .time-grid label > span, .comment-field > span { display: block; margin-bottom: 7px; color: #c6ccd5; font-size: .82rem; font-weight: 650; }
@@ -381,7 +384,7 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .time-input-row input,
 .comment-field textarea {
   width: 100%;
-  border: 1px solid #39414d;
+  border: 1px solid #586577;
   border-radius: 9px;
   background: #0f1217;
   color: #f4f6f8;
@@ -497,6 +500,7 @@ kbd {
   height: 22px;
   display: inline-grid;
   place-items: center;
+  padding: 0 4px;
   border-radius: 5px;
   border: 1px solid rgba(255,255,255,.14);
   background: rgba(255,255,255,.06);
@@ -746,14 +750,14 @@ kbd {
 
     <input id="fileInput" type="file" accept="video/*,.mp4,.m4v,.webm,.ogv,.ogg,.mov" hidden>
 
-    <section id="emptyState" class="empty-state" tabindex="0" aria-label="Carica un video" data-i18n-aria-label="empty.aria">
+    <section id="emptyState" class="empty-state" aria-label="Carica un video" data-i18n-aria-label="empty.aria">
       <div class="empty-card">
         <div class="source-switch" role="tablist" aria-label="Selezione sorgente" data-i18n-aria-label="empty.sourceSwitchAria">
-          <button id="sourceLocalTab" class="source-tab is-active" type="button" role="tab" aria-selected="true" data-i18n="empty.localTab">File locale</button>
-          <button id="sourceYoutubeTab" class="source-tab" type="button" role="tab" aria-selected="false" data-i18n="empty.youtubeTab">YouTube</button>
+          <button id="sourceLocalTab" class="source-tab is-active" type="button" role="tab" aria-selected="true" aria-controls="localSourcePanel" data-i18n="empty.localTab">File locale</button>
+          <button id="sourceYoutubeTab" class="source-tab" type="button" role="tab" aria-selected="false" aria-controls="youtubeSourcePanel" data-i18n="empty.youtubeTab">YouTube</button>
         </div>
 
-        <div id="localSourcePanel" class="source-panel">
+        <div id="localSourcePanel" class="source-panel" role="tabpanel" aria-labelledby="sourceLocalTab">
           <div class="empty-icon" aria-hidden="true">&#9654;</div>
           <h1 data-i18n="empty.localTitle">Apri un film dal computer</h1>
           <p data-i18n="empty.localDesc">Il video resta sul dispositivo. Puoi scegliere un file oppure trascinarlo qui.</p>
@@ -761,7 +765,7 @@ kbd {
           <p class="format-note" data-i18n="empty.localNote">La riproduzione dipende dai formati e codec supportati dal browser.</p>
         </div>
 
-        <div id="youtubeSourcePanel" class="source-panel is-hidden">
+        <div id="youtubeSourcePanel" class="source-panel is-hidden" role="tabpanel" aria-labelledby="sourceYoutubeTab">
           <div class="empty-icon youtube-icon" aria-hidden="true">&#9658;</div>
           <h1 data-i18n="empty.youtubeTitle">Apri un video da YouTube</h1>
           <p data-i18n="empty.youtubeDesc">Inserisci il link di un video YouTube pubblico o non in elenco incorporabile.</p>
@@ -794,7 +798,7 @@ kbd {
           </div>
         </div>
 
-        <div id="subtitleRail" class="subtitle-rail is-hidden" aria-live="polite" aria-atomic="true">
+        <div id="subtitleRail" class="subtitle-rail is-hidden">
           <div id="subtitleText" class="subtitle-text font-medium"></div>
         </div>
 
@@ -802,16 +806,16 @@ kbd {
           <div data-i18n="workspace.dropOverlay">Rilascia qui il nuovo film</div>
         </div>
 
-        <aside id="drawer" class="drawer" aria-hidden="true" aria-label="Pannello annotazioni" data-i18n-aria-label="drawer.aria">
+        <aside id="drawer" class="drawer" inert aria-hidden="true" aria-label="Pannello annotazioni" data-i18n-aria-label="drawer.aria">
           <div class="drawer-header">
             <div class="drawer-tabs" role="tablist" aria-label="Pannello annotazioni" data-i18n-aria-label="drawer.aria">
-              <button id="editorTabBtn" class="tab-button is-active" type="button" role="tab" aria-selected="true" data-i18n="drawer.tabComment">Commento</button>
-              <button id="listTabBtn" class="tab-button" type="button" role="tab" aria-selected="false" data-i18n="drawer.tabAnnotations">Annotazioni</button>
+              <button id="editorTabBtn" class="tab-button is-active" type="button" role="tab" aria-selected="true" aria-controls="editorPanel" data-i18n="drawer.tabComment">Commento</button>
+              <button id="listTabBtn" class="tab-button" type="button" role="tab" aria-selected="false" aria-controls="listPanel" data-i18n="drawer.tabAnnotations">Annotazioni</button>
             </div>
             <button id="closeDrawerBtn" class="icon-button" type="button" aria-label="Chiudi pannello" data-i18n-aria-label="drawer.closeAria">&times;</button>
           </div>
 
-          <div id="editorPanel" class="drawer-panel" role="tabpanel">
+          <div id="editorPanel" class="drawer-panel" role="tabpanel" aria-labelledby="editorTabBtn">
             <form id="annotationForm" class="annotation-form">
               <input id="annotationId" type="hidden">
 
@@ -859,7 +863,7 @@ kbd {
             </form>
           </div>
 
-          <div id="listPanel" class="drawer-panel is-hidden" role="tabpanel">
+          <div id="listPanel" class="drawer-panel is-hidden" role="tabpanel" aria-labelledby="listTabBtn">
             <div class="list-toolbar">
               <span id="listSummary" data-i18n="list.countZero">0 annotazioni</span>
               <button id="clearAllBtn" class="text-button danger" type="button" data-i18n="list.clearAll">Cancella tutte</button>
@@ -869,7 +873,7 @@ kbd {
         </aside>
       </div>
 
-      <div class="timeline-shell" aria-label="Timeline delle annotazioni" data-i18n-aria-label="timeline.aria">
+      <div class="timeline-shell" role="region" aria-label="Timeline delle annotazioni" data-i18n-aria-label="timeline.aria">
         <div id="annotationTimeline" class="annotation-timeline">
           <div id="timelineProgress" class="timeline-progress"></div>
           <div id="pendingInMarker" class="pending-in-marker is-hidden" title="IN impostato" data-i18n-title="timeline.pendingInTitle"></div>
@@ -883,35 +887,35 @@ kbd {
         </div>
 
         <div class="annotation-actions" aria-label="Comandi di annotazione" data-i18n-aria-label="dock.annotationActions">
-          <button id="markerBtn" class="action-button" type="button" disabled aria-label="Aggiungi marker (M)" data-i18n-aria-label="dock.markerAria">
+          <button id="markerBtn" class="action-button" type="button" disabled aria-label="Aggiungi marker (Alt+M)" data-i18n-aria-label="dock.markerAria">
             <span class="action-symbol">&#9679;</span>
             <span data-i18n="dock.marker">Marker</span>
-            <kbd>M</kbd>
+            <kbd>Alt+M</kbd>
           </button>
-          <button id="inBtn" class="action-button" type="button" disabled aria-label="Imposta punto IN (I)" data-i18n-aria-label="dock.setInAria">
+          <button id="inBtn" class="action-button" type="button" disabled aria-label="Imposta punto IN (Alt+I)" data-i18n-aria-label="dock.setInAria">
             <span class="action-symbol">|&lt;</span>
             <span data-i18n="dock.setIn">Imposta IN</span>
-            <kbd>I</kbd>
+            <kbd>Alt+I</kbd>
           </button>
-          <button id="outBtn" class="action-button" type="button" disabled aria-label="Imposta punto OUT (O)" data-i18n-aria-label="dock.setOutAria">
+          <button id="outBtn" class="action-button" type="button" disabled aria-label="Imposta punto OUT (Alt+O)" data-i18n-aria-label="dock.setOutAria">
             <span class="action-symbol">&gt;|</span>
             <span data-i18n="dock.setOut">Imposta OUT</span>
-            <kbd>O</kbd>
+            <kbd>Alt+O</kbd>
           </button>
-          <button id="dockListBtn" class="action-button emphasized" type="button" disabled aria-label="Elenco annotazioni (A)" data-i18n-aria-label="dock.annotationsAria">
+          <button id="dockListBtn" class="action-button emphasized" type="button" disabled aria-label="Elenco annotazioni (Alt+A)" data-i18n-aria-label="dock.annotationsAria">
             <span class="action-symbol">&#9776;</span>
             <span data-i18n="dock.annotations">Annotazioni</span>
-            <kbd>A</kbd>
+            <kbd>Alt+A</kbd>
           </button>
-          <button id="subtitleBtn" class="action-button" type="button" aria-haspopup="dialog" aria-expanded="false" aria-label="Sottotitoli (C)" data-i18n-aria-label="dock.subtitlesAria" aria-pressed="false" disabled>
+          <button id="subtitleBtn" class="action-button" type="button" aria-haspopup="dialog" aria-expanded="false" aria-label="Sottotitoli (Alt+C)" data-i18n-aria-label="dock.subtitlesAria" aria-pressed="false" disabled>
             <span class="action-symbol">CC</span>
             <span data-i18n="dock.subtitles">Sottotitoli</span>
-            <kbd>C</kbd>
+            <kbd>Alt+C</kbd>
           </button>
-          <button id="fullscreenBtn" class="action-button" type="button" disabled aria-label="Schermo intero (F)" data-i18n-aria-label="dock.fullscreenAria">
+          <button id="fullscreenBtn" class="action-button" type="button" disabled aria-label="Schermo intero (Alt+F)" data-i18n-aria-label="dock.fullscreenAria">
             <span class="action-symbol">&#x26F6;</span>
             <span data-i18n="dock.fullscreen">Schermo intero</span>
-            <kbd>F</kbd>
+            <kbd>Alt+F</kbd>
           </button>
         </div>
 
@@ -1124,17 +1128,17 @@ kbd {
       "dock.localPrefix": "File locale · ",
       "dock.annotationActions": "Comandi di annotazione",
       "dock.marker": "Marker",
-      "dock.markerAria": "Aggiungi marker (M)",
+      "dock.markerAria": "Aggiungi marker (Alt+M)",
       "dock.setIn": "Imposta IN",
-      "dock.setInAria": "Imposta punto IN (I)",
+      "dock.setInAria": "Imposta punto IN (Alt+I)",
       "dock.setOut": "Imposta OUT",
-      "dock.setOutAria": "Imposta punto OUT (O)",
+      "dock.setOutAria": "Imposta punto OUT (Alt+O)",
       "dock.annotations": "Annotazioni",
-      "dock.annotationsAria": "Elenco annotazioni (A)",
+      "dock.annotationsAria": "Elenco annotazioni (Alt+A)",
       "dock.subtitles": "Sottotitoli",
-      "dock.subtitlesAria": "Sottotitoli (C)",
+      "dock.subtitlesAria": "Sottotitoli (Alt+C)",
       "dock.fullscreen": "Schermo intero",
-      "dock.fullscreenAria": "Schermo intero (F)",
+      "dock.fullscreenAria": "Schermo intero (Alt+F)",
       "dock.pendingStatus": "IN: {time} - premi OUT quando termina la sequenza",
       "subtitle.popoverAria": "Gestione sottotitoli",
       "subtitle.popoverTitle": "Sottotitoli",
@@ -1193,6 +1197,7 @@ kbd {
       "youtube.error101_150": "L'autore del video o YouTube non consentono la riproduzione tramite incorporamento.",
       "youtube.error153": "Impossibile riprodurre questo video: restrizioni di origine o referer non identificabile. Verifica che l'applicazione sia servita tramite HTTP/HTTPS e che il video consenta l'incorporamento.",
       "youtube.errorDefault": "Si è verificato un errore nella riproduzione del video YouTube (codice {code}).",
+      "youtube.iframeTitle": "Player video YouTube",
       "videoError.title": "Il browser non riesce a riprodurre questo file",
       "videoError.message": "Il contenitore o il codec del video non e supportato. Per la massima compatibilita usa MP4 con video H.264 e audio AAC, oppure WebM.",
       "videoError.openAnother": "Apri un altro video"
@@ -1268,17 +1273,17 @@ kbd {
       "dock.localPrefix": "Local file · ",
       "dock.annotationActions": "Annotation controls",
       "dock.marker": "Marker",
-      "dock.markerAria": "Add marker (M)",
+      "dock.markerAria": "Add marker (Alt+M)",
       "dock.setIn": "Set IN",
-      "dock.setInAria": "Set IN point (I)",
+      "dock.setInAria": "Set IN point (Alt+I)",
       "dock.setOut": "Set OUT",
-      "dock.setOutAria": "Set OUT point (O)",
+      "dock.setOutAria": "Set OUT point (Alt+O)",
       "dock.annotations": "Annotations",
-      "dock.annotationsAria": "Annotations list (A)",
+      "dock.annotationsAria": "Annotations list (Alt+A)",
       "dock.subtitles": "Subtitles",
-      "dock.subtitlesAria": "Subtitles (C)",
+      "dock.subtitlesAria": "Subtitles (Alt+C)",
       "dock.fullscreen": "Fullscreen",
-      "dock.fullscreenAria": "Fullscreen (F)",
+      "dock.fullscreenAria": "Fullscreen (Alt+F)",
       "dock.pendingStatus": "IN: {time} - press OUT when sequence ends",
       "subtitle.popoverAria": "Subtitle management",
       "subtitle.popoverTitle": "Subtitles",
@@ -1337,6 +1342,7 @@ kbd {
       "youtube.error101_150": "The video author or YouTube does not allow embedded playback.",
       "youtube.error153": "Unable to play this video: origin restrictions or unidentified referer. Verify the app is served via HTTP/HTTPS and the video allows embedding.",
       "youtube.errorDefault": "An error occurred while playing the YouTube video (code {code}).",
+      "youtube.iframeTitle": "YouTube video player",
       "videoError.title": "The browser cannot play this file",
       "videoError.message": "The video container or codec is not supported. For maximum compatibility use MP4 with H.264 video and AAC audio, or WebM.",
       "videoError.openAnother": "Open another video"
@@ -1471,6 +1477,7 @@ kbd {
         isYt ? t("youtube.errorTitle") : t("videoError.title")
       );
     }
+    updateYouTubeIframeTitle();
   }
 
   const state = {
@@ -1782,7 +1789,7 @@ kbd {
       if (!state.loaded || !state.projectKey || !state.sourceId) return;
       updateTimeUI();
       savePlaybackPosition(false);
-    }, 250);
+    }, 50);
   }
 
   function stopUiTimer() {
@@ -1998,6 +2005,19 @@ kbd {
     }
   }
 
+  function updateYouTubeIframeTitle() {
+    let iframe = null;
+    if (state.ytPlayer && typeof state.ytPlayer.getIframe === "function") {
+      try { iframe = state.ytPlayer.getIframe(); } catch (e) {}
+    }
+    if (!iframe && els.youtubeContainer) {
+      iframe = els.youtubeContainer.querySelector("iframe");
+    }
+    if (iframe) {
+      iframe.setAttribute("title", t("youtube.iframeTitle"));
+    }
+  }
+
   function onYouTubePlayerReady(event, videoId) {
     if (!state.projectKey || state.sourceType !== "youtube" || state.sourceId !== videoId) {
       try {
@@ -2009,6 +2029,7 @@ kbd {
     }
     state.loaded = true;
     clearVideoError();
+    updateYouTubeIframeTitle();
     try {
       if (event && event.target && typeof event.target.getVideoData === "function") {
         const data = event.target.getVideoData();
@@ -2037,6 +2058,7 @@ kbd {
 
   function onYouTubePlayerStateChange(event) {
     if (!state.loaded || !state.projectKey || state.sourceType !== "youtube") return;
+    updateYouTubeIframeTitle();
     try {
       if (!state.videoTitle && event && event.target && typeof event.target.getVideoData === "function") {
         const data = event.target.getVideoData();
@@ -2210,16 +2232,34 @@ kbd {
     return a.in - b.in || (a.out || a.in) - (b.out || b.in);
   }
 
+  let previousFocusDrawer = null;
+
   function openDrawer(tab = "editor") {
+    if (!els.drawer.classList.contains("is-open")) {
+      previousFocusDrawer = document.activeElement;
+    }
+    els.drawer.removeAttribute("inert");
     els.drawer.classList.add("is-open");
     els.drawer.setAttribute("aria-hidden", "false");
     setDrawerTab(tab);
+    if (tab === "list") {
+      setTimeout(() => {
+        if (els.listTabBtn) els.listTabBtn.focus();
+      }, 0);
+    }
   }
 
   function closeDrawer() {
     els.drawer.classList.remove("is-open");
     els.drawer.setAttribute("aria-hidden", "true");
+    els.drawer.setAttribute("inert", "");
     els.formError.textContent = "";
+    if (previousFocusDrawer && previousFocusDrawer !== document.body && typeof previousFocusDrawer.focus === "function" && document.body.contains(previousFocusDrawer)) {
+      previousFocusDrawer.focus();
+    } else if (els.dockListBtn && !els.dockListBtn.disabled) {
+      els.dockListBtn.focus();
+    }
+    previousFocusDrawer = null;
   }
 
   function setDrawerTab(tab) {
@@ -2684,16 +2724,28 @@ kbd {
     els.subFontLargeBtn.setAttribute("aria-label", t("subtitle.fontLargeAria"));
   }
 
+  let previousFocusSubtitle = null;
+
   function openSubtitlePopover() {
     if (!state.loaded) return;
+    previousFocusSubtitle = document.activeElement;
     els.subtitlePopover.classList.remove("is-hidden");
     els.subtitleBtn.setAttribute("aria-expanded", "true");
     updateSubtitlePopoverUI();
+    if (els.closeSubtitlePopoverBtn) {
+      els.closeSubtitlePopoverBtn.focus();
+    }
   }
 
   function closeSubtitlePopover() {
     els.subtitlePopover.classList.add("is-hidden");
     els.subtitleBtn.setAttribute("aria-expanded", "false");
+    if (previousFocusSubtitle && previousFocusSubtitle !== document.body && typeof previousFocusSubtitle.focus === "function" && document.body.contains(previousFocusSubtitle)) {
+      previousFocusSubtitle.focus();
+    } else if (els.subtitleBtn && !els.subtitleBtn.disabled) {
+      els.subtitleBtn.focus();
+    }
+    previousFocusSubtitle = null;
   }
 
   function toggleSubtitlePopover() {
@@ -3128,14 +3180,15 @@ kbd {
         return;
       }
     }
-    if (!state.loaded || event.ctrlKey || event.metaKey || event.altKey) return;
-    const key = event.key.toLowerCase();
-    if (key === "m") { event.preventDefault(); beginMarker(); }
-    else if (key === "i") { event.preventDefault(); setInPoint(); }
-    else if (key === "o") { event.preventDefault(); setOutPoint(); }
-    else if (key === "a") { event.preventDefault(); openDrawer("list"); }
-    else if (key === "c") { event.preventDefault(); toggleSubtitlePopover(); }
-    else if (key === "f") { event.preventDefault(); toggleFullscreen(); }
+    if (!state.loaded || !event.altKey || event.ctrlKey || event.metaKey) return;
+    const code = event.code;
+    const key = event.key ? event.key.toLowerCase() : "";
+    if (code === "KeyM" || key === "m" || key === "µ") { event.preventDefault(); beginMarker(); }
+    else if (code === "KeyI" || key === "i" || key === "ˆ") { event.preventDefault(); setInPoint(); }
+    else if (code === "KeyO" || key === "o" || key === "ø") { event.preventDefault(); setOutPoint(); }
+    else if (code === "KeyA" || key === "a" || key === "å") { event.preventDefault(); openDrawer("list"); }
+    else if (code === "KeyC" || key === "c" || key === "ç") { event.preventDefault(); toggleSubtitlePopover(); }
+    else if (code === "KeyF" || key === "f" || key === "ƒ") { event.preventDefault(); toggleFullscreen(); }
   });
 
   document.addEventListener("visibilitychange", () => {

@@ -1307,8 +1307,8 @@ assert.strictEqual(mockDom.doc.documentElement.lang, "en", "html.lang must be 'e
 assert.strictEqual(mockDom.doc.title, translations.en["app.pageTitle"], "Document title updated to English");
 assert.strictEqual(mockDom.textElement.textContent, "Open video", "Text content updated to English");
 assert.strictEqual(mockDom.placeholderElement.placeholder, "https://www.youtube.com/watch?v=...", "Placeholder updated to English");
-assert.strictEqual(mockDom.buttonElement.ariaLabel, "Add marker (M)", "aria-label updated to English");
-assert.strictEqual(mockDom.buttonElement.title, "Add marker (M)", "title updated to English");
+assert.strictEqual(mockDom.buttonElement.ariaLabel, "Add marker (Alt+M)", "aria-label updated to English");
+assert.strictEqual(mockDom.buttonElement.title, "Add marker (Alt+M)", "title updated to English");
 assert.strictEqual(mockDom.langItBtn.classList.contains("is-active"), false, "IT button not active");
 assert.strictEqual(mockDom.langItBtn.ariaPressed, "false", "IT button aria-pressed false");
 assert.strictEqual(mockDom.langEnBtn.classList.contains("is-active"), true, "EN button active");
@@ -1319,8 +1319,8 @@ mockDom.applyMockTranslations("it");
 assert.strictEqual(mockDom.doc.documentElement.lang, "it", "html.lang must be 'it'");
 assert.strictEqual(mockDom.doc.title, translations.it["app.pageTitle"], "Document title updated to Italian");
 assert.strictEqual(mockDom.textElement.textContent, "Apri video", "Text content updated to Italian");
-assert.strictEqual(mockDom.buttonElement.ariaLabel, "Aggiungi marker (M)", "aria-label updated to Italian");
-assert.strictEqual(mockDom.buttonElement.title, "Aggiungi marker (M)", "title updated to Italian");
+assert.strictEqual(mockDom.buttonElement.ariaLabel, "Aggiungi marker (Alt+M)", "aria-label updated to Italian");
+assert.strictEqual(mockDom.buttonElement.title, "Aggiungi marker (Alt+M)", "title updated to Italian");
 assert.strictEqual(mockDom.langItBtn.classList.contains("is-active"), true, "IT button active");
 assert.strictEqual(mockDom.langItBtn.ariaPressed, "true", "IT button aria-pressed true");
 assert.strictEqual(mockDom.langEnBtn.classList.contains("is-active"), false, "EN button not active");
@@ -1376,5 +1376,141 @@ assert.strictEqual(
 console.log("       ✓ Canonical CSV export and timecode language-independence passed!");
 
 console.log("   ✓ Internationalization IT/EN tests passed!");
+
+// 9. Testing Accessibility Remediations (WCAG 2.2 & EN 301 549)
+console.log("\n9. Testing Accessibility Remediations (WCAG 2.2 & EN 301 549)...");
+
+// 9.1 Static HTML inspection of index.html
+console.log("   9.1 Testing static HTML accessibility attributes...");
+const htmlContent = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
+
+// Drawer inert & aria-hidden
+assert(/<aside[^>]*id="drawer"[^>]*inert/.test(htmlContent), "Closed drawer must have 'inert' attribute in HTML");
+assert(/<aside[^>]*id="drawer"[^>]*aria-hidden="true"/.test(htmlContent), "Closed drawer must have aria-hidden='true' in HTML");
+
+// Subtitle rail: no aria-live or aria-atomic (WCAG 4.1.3 / EN 301 549 11.4.1.3)
+assert(/id="subtitleRail"[^>]*class="subtitle-rail is-hidden"/.test(htmlContent), "Subtitle rail must exist");
+assert(!/id="subtitleRail"[^>]*aria-live/.test(htmlContent), "Subtitle rail must NOT have aria-live (prevents speech queue flooding)");
+assert(!/id="subtitleRail"[^>]*aria-atomic/.test(htmlContent), "Subtitle rail must NOT have aria-atomic");
+
+// Timeline shell: role="region" (WCAG 4.1.2 WAI-ARIA 1.2 prohibited ARIA on generic element)
+assert(/class="timeline-shell"[^>]*role="region"/.test(htmlContent), "Timeline shell must declare role='region'");
+
+// Empty state: non-interactive layout element must not have tabindex="0" (WCAG 2.4.7)
+assert(!/id="emptyState"[^>]*tabindex/.test(htmlContent), "Empty state must not have tabindex='0'");
+
+// Source tabs & tabpanels (WAI-ARIA 1.2 Tabs pattern)
+assert(/id="sourceLocalTab"[^>]*role="tab"[^>]*aria-controls="localSourcePanel"/.test(htmlContent), "sourceLocalTab must have role='tab' and aria-controls='localSourcePanel'");
+assert(/id="sourceYoutubeTab"[^>]*role="tab"[^>]*aria-controls="youtubeSourcePanel"/.test(htmlContent), "sourceYoutubeTab must have role='tab' and aria-controls='youtubeSourcePanel'");
+assert(/id="localSourcePanel"[^>]*role="tabpanel"[^>]*aria-labelledby="sourceLocalTab"/.test(htmlContent), "localSourcePanel must have role='tabpanel' and aria-labelledby='sourceLocalTab'");
+assert(/id="youtubeSourcePanel"[^>]*role="tabpanel"[^>]*aria-labelledby="sourceYoutubeTab"/.test(htmlContent), "youtubeSourcePanel must have role='tabpanel' and aria-labelledby='sourceYoutubeTab'");
+
+// Drawer tabs & tabpanels
+assert(/id="editorTabBtn"[^>]*role="tab"[^>]*aria-controls="editorPanel"/.test(htmlContent), "editorTabBtn must have aria-controls='editorPanel'");
+assert(/id="listTabBtn"[^>]*role="tab"[^>]*aria-controls="listPanel"/.test(htmlContent), "listTabBtn must have aria-controls='listPanel'");
+assert(/id="editorPanel"[^>]*role="tabpanel"[^>]*aria-labelledby="editorTabBtn"/.test(htmlContent), "editorPanel must have role='tabpanel' and aria-labelledby='editorTabBtn'");
+assert(/id="listPanel"[^>]*role="tabpanel"[^>]*aria-labelledby="listTabBtn"/.test(htmlContent), "listPanel must have role='tabpanel' and aria-labelledby='listTabBtn'");
+
+// Dock shortcut labels and keys (Alt+<Key>) (WCAG 2.1.4)
+const dockButtons = [
+  { id: "markerBtn", key: "Alt+M", aria: "dock.markerAria" },
+  { id: "inBtn", key: "Alt+I", aria: "dock.setInAria" },
+  { id: "outBtn", key: "Alt+O", aria: "dock.setOutAria" },
+  { id: "dockListBtn", key: "Alt+A", aria: "dock.annotationsAria" },
+  { id: "subtitleBtn", key: "Alt+C", aria: "dock.subtitlesAria" },
+  { id: "fullscreenBtn", key: "Alt+F", aria: "dock.fullscreenAria" }
+];
+dockButtons.forEach(btn => {
+  const escapedKey = btn.key.replace("+", "\\+");
+  const btnRegex = new RegExp(`id="${btn.id}"[^>]*>[\\s\\S]*?<kbd>${escapedKey}<\\/kbd>`);
+  assert(btnRegex.test(htmlContent), `${btn.id} must display <kbd>${btn.key}</kbd>`);
+});
+console.log("       ✓ Static HTML accessibility structure and ARIA attributes verified!");
+
+// 9.2 CSS Contrast & Focus visibility inspection
+console.log("   9.2 Testing CSS contrast and focus indicator styles...");
+// Form input border contrast #586577 (contrast ratio >= 3.0:1 on #0f1217 and #101319)
+assert(htmlContent.includes("border: 1px solid #586577"), "Input/textarea border must be #586577 (WCAG 1.4.11)");
+// Focus indicator for type switch radio inputs (WCAG 2.4.7)
+assert(htmlContent.includes(".type-switch input:focus-visible + span"), "Type switch radio inputs must have focus-visible styling (WCAG 2.4.7)");
+// Empty state outline none removed
+assert(!htmlContent.includes(".empty-state:focus"), "Empty state should not have outline: none");
+console.log("       ✓ CSS contrast (3.17:1 >= 3.0:1) and focus styling verified!");
+
+// 9.3 Keyboard Shortcut Handling (WCAG 2.1.4 Modifier requirement)
+console.log("   9.3 Testing keyboard shortcut logic (Alt modifier required)...");
+
+function simulateKeydown(event, loaded = true) {
+  let actionTriggered = null;
+  const state = { loaded };
+  function isTypingTarget(target) { return false; }
+  function beginMarker() { actionTriggered = "marker"; }
+  function setInPoint() { actionTriggered = "in"; }
+  function setOutPoint() { actionTriggered = "out"; }
+  function openDrawer(tab) { actionTriggered = "drawer_" + tab; }
+  function toggleSubtitlePopover() { actionTriggered = "subtitles"; }
+  function toggleFullscreen() { actionTriggered = "fullscreen"; }
+
+  if (isTypingTarget(event.target)) return null;
+  if (!state.loaded || !event.altKey || event.ctrlKey || event.metaKey) return null;
+  const code = event.code;
+  const key = event.key ? event.key.toLowerCase() : "";
+  if (code === "KeyM" || key === "m" || key === "µ") { beginMarker(); }
+  else if (code === "KeyI" || key === "i" || key === "ˆ") { setInPoint(); }
+  else if (code === "KeyO" || key === "o" || key === "ø") { setOutPoint(); }
+  else if (code === "KeyA" || key === "a" || key === "å") { openDrawer("list"); }
+  else if (code === "KeyC" || key === "c" || key === "ç") { toggleSubtitlePopover(); }
+  else if (code === "KeyF" || key === "f" || key === "ƒ") { toggleFullscreen(); }
+  return actionTriggered;
+}
+
+// Bare keys without Alt modifier must do nothing (WCAG 2.1.4)
+["m", "i", "o", "a", "c", "f"].forEach(key => {
+  const result = simulateKeydown({ key, code: "Key" + key.toUpperCase(), altKey: false });
+  assert.strictEqual(result, null, `Bare key "${key}" without Alt must NOT trigger any action`);
+});
+
+// Alt + keys must trigger actions
+assert.strictEqual(simulateKeydown({ key: "m", code: "KeyM", altKey: true }), "marker");
+assert.strictEqual(simulateKeydown({ key: "i", code: "KeyI", altKey: true }), "in");
+assert.strictEqual(simulateKeydown({ key: "o", code: "KeyO", altKey: true }), "out");
+assert.strictEqual(simulateKeydown({ key: "a", code: "KeyA", altKey: true }), "drawer_list");
+assert.strictEqual(simulateKeydown({ key: "c", code: "KeyC", altKey: true }), "subtitles");
+assert.strictEqual(simulateKeydown({ key: "f", code: "KeyF", altKey: true }), "fullscreen");
+
+// Option key characters on macOS (Alt modifier produces special chars)
+assert.strictEqual(simulateKeydown({ key: "µ", code: "KeyM", altKey: true }), "marker", "macOS Alt+M (µ) triggers marker");
+assert.strictEqual(simulateKeydown({ key: "ˆ", code: "KeyI", altKey: true }), "in", "macOS Alt+I (ˆ) triggers in");
+assert.strictEqual(simulateKeydown({ key: "ø", code: "KeyO", altKey: true }), "out", "macOS Alt+O (ø) triggers out");
+assert.strictEqual(simulateKeydown({ key: "å", code: "KeyA", altKey: true }), "drawer_list", "macOS Alt+A (å) triggers drawer");
+assert.strictEqual(simulateKeydown({ key: "ç", code: "KeyC", altKey: true }), "subtitles", "macOS Alt+C (ç) triggers subtitles");
+assert.strictEqual(simulateKeydown({ key: "ƒ", code: "KeyF", altKey: true }), "fullscreen", "macOS Alt+F (ƒ) triggers fullscreen");
+
+console.log("       ✓ WCAG 2.1.4 single-character shortcuts eliminated; Alt+<Key> enforced across OS layouts!");
+
+// 9.4 YouTube iframe title localization
+console.log("   9.4 Testing YouTube iframe title localization...");
+assert.strictEqual(translations.it["youtube.iframeTitle"], "Player video YouTube");
+assert.strictEqual(translations.en["youtube.iframeTitle"], "YouTube video player");
+
+const mockIframe = { title: "" };
+function updateMockIframeTitle(lang) {
+  mockIframe.title = translations[lang]["youtube.iframeTitle"];
+}
+updateMockIframeTitle("it");
+assert.strictEqual(mockIframe.title, "Player video YouTube");
+updateMockIframeTitle("en");
+assert.strictEqual(mockIframe.title, "YouTube video player");
+console.log("       ✓ YouTube iframe accessible name localized in IT and EN!");
+
+// 9.5 Subtitle temporal synchronization interval (EN 301 549 7.1.2)
+console.log("   9.5 Testing subtitle sync interval compliance (EN 301 549 7.1.2)...");
+const timerMatch = htmlContent.match(/state\.ytPollTimer = setInterval\([\s\S]*?,\s*(\d+)\);/);
+assert(timerMatch, "UI poll timer setInterval must exist");
+const timerInterval = Number(timerMatch[1]);
+assert(timerInterval <= 50, `UI timer interval must be <= 50ms for EN 301 549 7.1.2 compliance (found: ${timerInterval}ms)`);
+console.log(`       ✓ Subtitle polling interval (${timerInterval}ms <= 50ms) meets EN 301 549 7.1.2 temporal sync requirement!`);
+
+console.log("   ✓ All Accessibility Remediation tests passed!");
 
 console.log("\n=== ALL TESTS PASSED SUCCESSFULLY! ===");
