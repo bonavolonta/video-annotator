@@ -96,27 +96,6 @@ La suite comprende 7 gruppi di test:
 
 ---
 
-## Code Review: Alibaba OpenCodeReview in Delegation Mode
-
-Il progetto rispetta lo standard **Alibaba OpenCodeReview** in **Delegation Mode**:
-
-1. **Ispezione dell'anteprima del diff**:
-   ```bash
-   npx ocr delegate preview --format json
-   ```
-2. **Ispezione delle regole**:
-   ```bash
-   npx ocr delegate rule <file>
-   ```
-3. **Criteri di conformità v1.3**:
-   * Assoluta assenza di overlay video: sottotitoli collocati in fascia inferiore non invasiva;
-   * Zero regressioni su riproduzione locale, YouTube e MediaAdapter;
-   * Parsing client-side sicuro e immunità XSS (`textContent`);
-   * Gestione resiliente dello storage e prevenzione di loop/blocchi per file voluminosi.
-
----
-
 ## Note Storiche
 
-* [Report Code Review Baseline v1.1](docs/CODE_REVIEW_BASELINE.md)
 * [Note di rilascio v1.1 originarie](docs/BASELINE_v1.1_NOTES.md)

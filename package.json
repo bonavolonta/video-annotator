@@ -4,19 +4,6 @@
   "private": true,
   "description": "video-annotator v1.4 - Applicazione web per annotazione temporale di video locali e YouTube con supporto sottotitoli esterni e internazionalizzazione IT/EN",
   "scripts": {
-    "test": "node test/test-suite.js",
-    "review": "ocr review --audience agent",
-    "review:preview": "ocr review --preview",
-    "review:scan": "ocr scan",
-    "review:delegate": "ocr delegate preview --format json",
-    "review:rules": "ocr delegate rule",
-    "ocr": "ocr",
-    "ocr:review": "ocr review",
-    "ocr:scan": "ocr scan",
-    "ocr:preview": "ocr scan --preview",
-    "ocr:config": "ocr config"
-  },
-  "devDependencies": {
-    "@alibaba-group/open-code-review": "^1.12.9"
+    "test": "node test/test-suite.js"
   }
 }
