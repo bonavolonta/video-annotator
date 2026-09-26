@@ -10,6 +10,7 @@ authors:
   - family-names: "Bullegas"
     given-names: "Daniele"
 version: "1.4.0"
+date-released: 2026-09-26
 license: "MIT"
 repository-code: "https://github.com/bonavolonta/video-annotator"
 url: "https://bonavolonta.github.io/video-annotator/"
