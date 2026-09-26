@@ -1503,13 +1503,13 @@ updateMockIframeTitle("en");
 assert.strictEqual(mockIframe.title, "YouTube video player");
 console.log("       ✓ YouTube iframe accessible name localized in IT and EN!");
 
-// 9.5 Subtitle temporal synchronization interval (EN 301 549 7.1.2)
-console.log("   9.5 Testing subtitle sync interval compliance (EN 301 549 7.1.2)...");
+// 9.5 Subtitle temporal synchronization interval (EN 301 549 §7.1.2)
+console.log("   9.5 Testing subtitle sync interval (EN 301 549 §7.1.2)...");
 const timerMatch = htmlContent.match(/state\.ytPollTimer = setInterval\([\s\S]*?,\s*(\d+)\);/);
 assert(timerMatch, "UI poll timer setInterval must exist");
 const timerInterval = Number(timerMatch[1]);
-assert(timerInterval <= 50, `UI timer interval must be <= 50ms for EN 301 549 7.1.2 compliance (found: ${timerInterval}ms)`);
-console.log(`       ✓ Subtitle polling interval (${timerInterval}ms <= 50ms) meets EN 301 549 7.1.2 temporal sync requirement!`);
+assert(timerInterval <= 50, `UI timer interval must be <= 50ms (found: ${timerInterval}ms)`);
+console.log(`       ✓ Subtitle polling interval verified (${timerInterval}ms <= 50ms); end-to-end EN 301 549 §7.1.2 synchronization remains subject to instrumented validation.`);
 
 console.log("   ✓ All Accessibility Remediation tests passed!");
 

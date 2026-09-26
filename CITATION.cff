@@ -1,0 +1,15 @@
+cff-version: 1.2.0
+message: "If you use video-annotator in your work, please cite the software using the metadata below."
+title: "video-annotator"
+authors:
+  - family-names: "Bonavolonta"
+    given-names: "Gianmarco"
+    orcid: "https://orcid.org/0000-0001-7818-8865"
+    affiliation: "University of Cagliari"
+    email: "gianmarco.bonavolont@gmail.com"
+  - family-names: "Bullegas"
+    given-names: "Daniele"
+version: "1.4.0"
+license: "MIT"
+repository-code: "https://github.com/bonavolonta/video-annotator"
+url: "https://bonavolonta.github.io/video-annotator/"
