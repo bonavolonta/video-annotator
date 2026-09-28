@@ -442,7 +442,15 @@ Questo contesto ha costituito l'ambiente didattico e scientifico in cui è emers
 ## Autore
 
 Gianmarco Bonavolonta  
+ORCID: [https://orcid.org/0000-0001-7818-8865](https://orcid.org/0000-0001-7818-8865)  
 Repository: [https://github.com/bonavolonta/video-annotator](https://github.com/bonavolonta/video-annotator)
+
+---
+
+## Contributors
+
+Daniele Bullegas — Project Contributor  
+ORCID: [https://orcid.org/0000-0002-5796-4869](https://orcid.org/0000-0002-5796-4869)
 
 ---
 

@@ -7,8 +7,6 @@ authors:
     orcid: "https://orcid.org/0000-0001-7818-8865"
     affiliation: "University of Cagliari"
     email: "gianmarco.bonavolont@gmail.com"
-  - family-names: "Bullegas"
-    given-names: "Daniele"
 version: "1.4.0"
 date-released: 2026-09-26
 license: "MIT"
