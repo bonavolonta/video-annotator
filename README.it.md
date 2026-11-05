@@ -1,5 +1,7 @@
 # video-annotator
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23974640.svg)](https://doi.org/10.5281/zenodo.23974640)
+
 [English](README.md)
 
 **video-annotator** è uno strumento open source basato su browser per l'annotazione temporale di video, progettato per la ricerca, la didattica e l'analisi filmica e dei media.
@@ -8,6 +10,7 @@ Supporta file video locali compatibili con il browser e video YouTube, consenten
 
 * **Live Demo:** [https://bonavolonta.github.io/video-annotator/](https://bonavolonta.github.io/video-annotator/)
 * **Versione:** 1.4.0
+* **DOI:** [10.5281/zenodo.23974640](https://doi.org/10.5281/zenodo.23974640)
 * **Licenza:** MIT
 
 ---
@@ -417,7 +420,15 @@ I metadati di citazione per video-annotator 1.4.0 sono forniti nel file [CITATIO
 
 In caso di utilizzo di video-annotator in pubblicazioni o lavori accademici, si invita a citare la versione del software utilizzata, in modo che il software associato al flusso di ricerca possa essere identificato con la massima precisione possibile.
 
-Informazioni relative a un DOI persistente saranno aggiunte qualora venga adottata l'archiviazione del software su un repository dedicato al rilascio di DOI.
+* **DOI versione (v1.4.0):** [10.5281/zenodo.23974640](https://doi.org/10.5281/zenodo.23974640)
+* **Concept DOI (tutte le versioni):** [10.5281/zenodo.23974639](https://doi.org/10.5281/zenodo.23974639)
+* **Record Zenodo:** [https://zenodo.org/records/23974640](https://zenodo.org/records/23974640)
+
+### Esempio di citazione (formato APA)
+
+```text
+Bonavolontà, G. (2026). video-annotator (Versione 1.4.0) [Software]. Zenodo. https://doi.org/10.5281/zenodo.23974640
+```
 
 ---
 

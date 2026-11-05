@@ -7,6 +7,14 @@ authors:
     orcid: "https://orcid.org/0000-0001-7818-8865"
     affiliation: "University of Cagliari"
     email: "gianmarco.bonavolont@gmail.com"
+doi: "10.5281/zenodo.23974640"
+identifiers:
+  - type: doi
+    value: "10.5281/zenodo.23974640"
+    description: "Version 1.4.0 DOI"
+  - type: doi
+    value: "10.5281/zenodo.23974639"
+    description: "Concept DOI for all versions"
 version: "1.4.0"
 date-released: 2026-09-26
 license: "MIT"
